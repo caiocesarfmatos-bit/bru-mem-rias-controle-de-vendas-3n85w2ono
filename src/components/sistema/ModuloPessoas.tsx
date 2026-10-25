@@ -576,7 +576,14 @@ export const ModuloPessoas: React.FC = () => {
                               className="bg-white/80 p-2 rounded border border-[#F0E4E0]"
                             >
                               <span className="font-semibold">
-                                {end.tipo_endereco || 'Principal'}:
+                                {end.tipo
+                                  ? end.tipo === 'entrega'
+                                    ? 'Entrega'
+                                    : end.tipo === 'cobranca'
+                                      ? 'Cobrança'
+                                      : 'Fiscal'
+                                  : 'Principal'}
+                                :
                               </span>{' '}
                               {end.logradouro}, {end.numero}
                               {end.complemento ? ` (${end.complemento})` : ''} - {end.bairro},{' '}

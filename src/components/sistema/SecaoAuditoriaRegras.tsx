@@ -37,7 +37,7 @@ export const SecaoAuditoriaRegras: React.FC = () => {
       <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
         <div>
           <CardTitle className="text-base font-bold text-[#4E342E]">
-            Auditoria Automatizada de Regras de Integridade (R1–R14)
+            Auditoria Automatizada de Regras de Integridade (R1–R15)
           </CardTitle>
           <p className="text-xs text-[#4E342E]/70">
             Validação ativa com casos de teste positivos e negativos contra o backend Skip Cloud
@@ -51,7 +51,7 @@ export const SecaoAuditoriaRegras: React.FC = () => {
           className="bg-[#FF1493] hover:bg-[#D8117E] text-white"
         >
           <Play className="w-3.5 h-3.5 mr-1" />
-          {executando ? 'Testando...' : 'Executar Testes R1-R14'}
+          {executando ? 'Testando...' : 'Executar Testes R1-R15'}
         </Button>
       </CardHeader>
 
@@ -85,7 +85,7 @@ export const SecaoAuditoriaRegras: React.FC = () => {
 
         {resultados.length === 0 && (
           <div className="text-center py-6 text-xs text-[#4E342E]/60">
-            Clique no botão acima para submeter as regras R1–R14 a testes reais no servidor e
+            Clique no botão acima para submeter as regras R1–R15 a testes reais no servidor e
             validar os bloqueios.
           </div>
         )}

@@ -58,6 +58,11 @@ export const ModuloVendas: React.FC = () => {
   // Form states do novo pedido
   const [clienteId, setClienteId] = useState('')
   const [produtoId, setProdutoId] = useState('')
+  const [tipoItem, setTipoItem] = useState('Ímã Polaroid')
+  const [modeloItem, setModeloItem] = useState('5x5 cm Clássico')
+  const [fotoItem, setFotoItem] = useState('')
+  const [prazoEntregaDias, setPrazoEntregaDias] = useState('3')
+  const [enderecoEntregaTexto, setEnderecoEntregaTexto] = useState('')
   const [localEstoqueId, setLocalEstoqueId] = useState('')
   const [quantidade, setQuantidade] = useState('10')
   const [precoUnitarioReais, setPrecoUnitarioReais] = useState('')
@@ -150,12 +155,17 @@ export const ModuloVendas: React.FC = () => {
   useEffect(() => {
     const c = clientes.find((item) => item.id === clienteId)
     if (c) {
-      const end = c.enderecos?.[0]
-      if (end?.cep) {
-        setCepEntrega(end.cep)
-        setCidadeDestino(end.cidade || 'Rio de Janeiro')
-        setUfDestino(end.uf || 'RJ')
-        dispararCalculoFrete(end.uf || 'RJ', end.cidade, parseInt(quantidade, 10) || 1)
+      const end = c.enderecos && c.enderecos.length > 0 ? c.enderecos[0] : null
+      if (end) {
+        const textoFormatado =
+          `${end.logradouro || ''}, ${end.numero || ''} ${end.complemento ? `(${end.complemento})` : ''} - ${end.bairro || ''}, ${end.cidade || ''}/${end.uf || ''}`.trim()
+        setEnderecoEntregaTexto(textoFormatado)
+        if (end.cep) {
+          setCepEntrega(end.cep)
+          setCidadeDestino(end.cidade || 'Rio de Janeiro')
+          setUfDestino(end.uf || 'RJ')
+          dispararCalculoFrete(end.uf || 'RJ', end.cidade, parseInt(quantidade, 10) || 1)
+        }
       }
     }
   }, [clienteId])
@@ -216,6 +226,9 @@ export const ModuloVendas: React.FC = () => {
             quantidade: qtd,
             precoUnitarioCentavos: precoCent,
             custoUnitarioCentavos: 120,
+            tipoItem: tipoItem.trim(),
+            modeloItem: modeloItem.trim(),
+            fotoItem: fotoItem.trim(),
           },
         ],
         pagamentos: [
@@ -227,6 +240,9 @@ export const ModuloVendas: React.FC = () => {
         ],
         acrescimoCentavos: freteEfetivoCentavos,
         snapshotFrete,
+        prazoEntregaDias: parseInt(prazoEntregaDias, 10) || 3,
+        enderecoEntregaTexto: enderecoEntregaTexto.trim(),
+        fotoReferencia: fotoItem.trim(),
         observacao,
         confirmarImediatamente: true,
       })
@@ -309,7 +325,7 @@ export const ModuloVendas: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
-                  <Label>Produto</Label>
+                  <Label>Produto Base</Label>
                   <Select value={produtoId} onValueChange={setProdutoId} required>
                     <SelectTrigger>
                       <SelectValue />
@@ -331,6 +347,61 @@ export const ModuloVendas: React.FC = () => {
                     min="1"
                     value={quantidade}
                     onChange={(e) => setQuantidade(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Especificação do Produto: Tipo, Modelo e Foto de Referência */}
+              <div className="p-3 bg-pink-50/50 border border-[#FF1493]/20 rounded-md space-y-3">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[#FF1493]">
+                  Especificações do Produto & Personalização
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs">Tipo do Produto</Label>
+                    <Input
+                      value={tipoItem}
+                      onChange={(e) => setTipoItem(e.target.value)}
+                      placeholder="Ex: Ímã Polaroid, Caneca, Chaveiro"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Modelo / Formato</Label>
+                    <Input
+                      value={modeloItem}
+                      onChange={(e) => setModeloItem(e.target.value)}
+                      placeholder="Ex: 5x5 cm, Redondo 4cm, Tira de 3 fotos"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Foto / Link de Referência</Label>
+                    <Input
+                      value={fotoItem}
+                      onChange={(e) => setFotoItem(e.target.value)}
+                      placeholder="URL ou código do drive/arquivo"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Endereço Completo e Prazo de Entrega */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <Label className="text-xs">Endereço de Entrega do Cliente</Label>
+                  <Input
+                    value={enderecoEntregaTexto}
+                    onChange={(e) => setEnderecoEntregaTexto(e.target.value)}
+                    placeholder="Rua, número, complemento, bairro, cidade"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Prazo de Entrega (dias úteis)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={prazoEntregaDias}
+                    onChange={(e) => setPrazoEntregaDias(e.target.value)}
+                    placeholder="Ex: 3"
                   />
                 </div>
               </div>
@@ -634,11 +705,27 @@ export const ModuloVendas: React.FC = () => {
                     <span>Itens: {p.itens?.length || 0}</span>
                     <span>•</span>
                     <span>
+                      Prazo:{' '}
+                      <strong className="text-[#4E342E]">
+                        {p.prazo_entrega_dias ? `${p.prazo_entrega_dias} dias úteis` : 'Imediato'}
+                      </strong>
+                    </span>
+                    <span>•</span>
+                    <span>
                       Pagamento:{' '}
                       {p.pagamentos && p.pagamentos.length > 0
                         ? p.pagamentos.map((pag) => pag.forma_pagamento).join(', ')
                         : '-'}
                     </span>
+                    {p.itens && p.itens[0]?.tipo_item && (
+                      <span>
+                        • Tipo:{' '}
+                        <strong>
+                          {p.itens[0].tipo_item}
+                          {p.itens[0].modelo_item ? ` (${p.itens[0].modelo_item})` : ''}
+                        </strong>
+                      </span>
+                    )}
                   </div>
                 </div>
 

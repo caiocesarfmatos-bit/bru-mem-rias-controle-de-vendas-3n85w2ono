@@ -23,6 +23,51 @@ export type ModalidadeFrete =
 
 export type TipoFaixaFrete = 'peso_gramas' | 'valor_pedido_centavos' | 'quantidade_itens'
 
+export interface StatusIntegracaoCorreios {
+  configurado: boolean
+  descricao: string
+  modo: 'OFICIAL_CORREIOS' | 'TABELA_LOCAL_FAIXAS'
+  mensagem: string
+}
+
+/**
+ * Consulta status da credencial dos Correios no servidor
+ */
+export async function consultarStatusCorreios(): Promise<StatusIntegracaoCorreios> {
+  try {
+    const res = await pb.send<StatusIntegracaoCorreios>('/backend/v1/sistema/correios-config', {
+      method: 'GET',
+    })
+    return res
+  } catch (err) {
+    return {
+      configurado: false,
+      descricao: 'Cálculo por Faixas Locais (ViaCep)',
+      modo: 'TABELA_LOCAL_FAIXAS',
+      mensagem:
+        'Credencial Correios não configurada no servidor. Usando tabela de 13 faixas com CEP.',
+    }
+  }
+}
+
+/**
+ * Salva ou remove token dos Correios no servidor (somente Administrador)
+ */
+export async function salvarCredencialCorreios(
+  token: string,
+  usuarioCorreios?: string,
+  remover?: boolean,
+): Promise<{ sucesso: boolean; mensagem: string }> {
+  const res = await pb.send<{ sucesso: boolean; mensagem: string }>(
+    '/backend/v1/sistema/correios-config',
+    {
+      method: 'POST',
+      body: { token, usuarioCorreios, remover },
+    },
+  )
+  return res
+}
+
 export interface FaixaFreteRegistro {
   id: string
   nome: string

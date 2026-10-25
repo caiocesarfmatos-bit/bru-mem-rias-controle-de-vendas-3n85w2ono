@@ -531,6 +531,112 @@ routerAdd('POST', '/backend/v1/sistema/usuarios/criar-com-codigo', (c) => {
   }
 })
 
+// =========================================================================
+// ROTAS CORREIOS: CONSULTA STATUS E SALVAMENTO DE CREDENCIAIS
+// =========================================================================
+
+// GET /backend/v1/sistema/correios-config
+routerAdd('GET', '/backend/v1/sistema/correios-config', (c) => {
+  const auth = c.auth
+  if (!auth) {
+    return c.json(401, { erro: 'Autenticação exigida.' })
+  }
+
+  let tokenCadastrado = false
+  let descricao = 'Cálculo oficial Correios via API contratada'
+  try {
+    const rec = $app.findFirstRecordByData('parametros_seguranca', 'chave', 'CORREIOS_CONFIG')
+    const val = rec.getString('valor_hash')
+    if (val && val !== 'PENDENTE_CADASTRO_TOKEN' && val.trim().length > 5) {
+      tokenCadastrado = true
+    }
+    descricao = rec.getString('descricao') || descricao
+  } catch (_) {}
+
+  return c.json(200, {
+    configurado: tokenCadastrado,
+    descricao: descricao,
+    modo: tokenCadastrado ? 'OFICIAL_CORREIOS' : 'TABELA_LOCAL_FAIXAS',
+    mensagem: tokenCadastrado
+      ? 'Credencial ativa no servidor. Cálculo oficial Sedex/PAC habilitado.'
+      : 'Credencial não cadastrada. O sistema utiliza a tabela própria de faixas (13 faixas por região/peso) com CEP integrado.',
+  })
+})
+
+// POST /backend/v1/sistema/correios-config
+routerAdd('POST', '/backend/v1/sistema/correios-config', (c) => {
+  const auth = c.auth
+  if (!auth || auth.getString('perfil') !== 'administrador') {
+    return c.json(403, { erro: 'Apenas Administrador pode configurar credenciais dos Correios.' })
+  }
+
+  const body = c.requestInfo().body || {}
+  const token = (body.token || '').toString().trim()
+  const usuarioCorreios = (body.usuarioCorreios || '').toString().trim()
+
+  if (!token && !body.remover) {
+    return c.json(400, { erro: 'Token de acesso dos Correios é obrigatório.' })
+  }
+
+  try {
+    const paramCol = $app.findCollectionByNameOrId('parametros_seguranca')
+    let rec
+    try {
+      rec = $app.findFirstRecordByData('parametros_seguranca', 'chave', 'CORREIOS_CONFIG')
+    } catch (_) {
+      rec = new Record(paramCol)
+      rec.set('chave', 'CORREIOS_CONFIG')
+    }
+
+    if (body.remover) {
+      rec.set('valor_hash', 'PENDENTE_CADASTRO_TOKEN')
+      rec.set(
+        'descricao',
+        'Configuração oficial de credencial/token dos Correios (Removido pelo Administrador)',
+      )
+    } else {
+      // Salva token seguro no servidor
+      rec.set('valor_hash', token)
+      rec.set(
+        'descricao',
+        `Credencial oficial Correios vinculada ao contrato/usuário ${usuarioCorreios || 'Principal'}`,
+      )
+    }
+    $app.save(rec)
+
+    try {
+      const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
+      const recAudit = new Record(auditCol)
+      recAudit.set('entidade', 'PARAMETROS_SEGURANCA')
+      recAudit.set('identificador_registro', 'CORREIOS_CONFIG')
+      recAudit.set('campo', 'valor_hash')
+      recAudit.set('valor_anterior', '***')
+      recAudit.set(
+        'valor_novo',
+        JSON.stringify({
+          acao: body.remover ? 'TOKEN_REMOVIDO' : 'TOKEN_ATUALIZADO',
+          usuario_responsavel: auth.id,
+          data_hora: new Date().toISOString(),
+        }),
+      )
+      recAudit.set('usuario', auth.id)
+      recAudit.set('data_hora', new Date().toISOString())
+      recAudit.set('origem', 'correios_config_hook')
+      $app.save(recAudit)
+    } catch (_) {}
+
+    return c.json(200, {
+      sucesso: true,
+      configurado: !body.remover,
+      mensagem: body.remover
+        ? 'Credencial dos Correios removida. Sistema retornou ao uso das faixas próprias.'
+        : 'Credencial dos Correios salva com sucesso no servidor!',
+    })
+  } catch (err) {
+    return c.json(500, { erro: err.message || 'Falha ao salvar credencial no servidor.' })
+  }
+})
+
 // POST /backend/v1/sistema/usuarios/alterar-codigo-restrito
 routerAdd('POST', '/backend/v1/sistema/usuarios/alterar-codigo-restrito', (c) => {
   const correlationId = 'COD-CHG-' + Date.now()

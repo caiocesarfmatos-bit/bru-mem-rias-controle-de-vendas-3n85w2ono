@@ -8,6 +8,28 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Previne zoom involuntário no iOS Safari mantendo inputs legíveis (>=16px) */
+  @media screen and (max-width: 768px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+
+  /* Safe areas para iPhone com notch e Home Indicator */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
   :root {
     /* Paleta Bru Memórias: Rosa Choque (#FF1493), Marrom Escuro (#4E342E), Branco (#FFFFFF), Preto (#1E1E1E) */
     --background: 0 0% 100%;

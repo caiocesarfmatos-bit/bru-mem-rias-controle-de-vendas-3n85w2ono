@@ -20,11 +20,30 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Users, UserPlus, Search, Phone, MapPin, Building, UserCheck } from 'lucide-react'
+import {
+  Users,
+  UserPlus,
+  Search,
+  Phone,
+  MapPin,
+  Building,
+  UserCheck,
+  ShoppingBag,
+  Eye,
+  Calendar,
+  DollarSign,
+  CreditCard,
+  ChevronRight,
+} from 'lucide-react'
+import { PedidoVenda } from '@/types/sistema'
+import { listarPedidos } from '@/services/pedidos'
 
 export const ModuloPessoas: React.FC = () => {
   const [pessoas, setPessoas] = useState<Pessoa[]>([])
+  const [pedidos, setPedidos] = useState<PedidoVenda[]>([])
   const [filtro, setFiltro] = useState('')
+  const [pessoaSelecionada, setPessoaSelecionada] = useState<Pessoa | null>(null)
+  const [modalPerfilAberto, setModalPerfilAberto] = useState(false)
   const [filtroPapel, setFiltroPapel] = useState<'todos' | 'cliente' | 'fornecedor'>('todos')
   const [modalAberto, setModalAberto] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -53,8 +72,12 @@ export const ModuloPessoas: React.FC = () => {
   const carregarDados = async () => {
     setLoading(true)
     const papelFiltro = filtroPapel === 'todos' ? undefined : filtroPapel
-    const data = await listarPessoas(papelFiltro)
-    setPessoas(data)
+    const [dataPessoas, dataPedidos] = await Promise.all([
+      listarPessoas(papelFiltro),
+      listarPedidos(),
+    ])
+    setPessoas(dataPessoas)
+    setPedidos(dataPedidos)
     setLoading(false)
   }
 
@@ -480,10 +503,220 @@ export const ModuloPessoas: React.FC = () => {
                     </span>
                   </div>
                 )}
+
+                <div className="pt-3 border-t border-[#F0E4E0] flex justify-end">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full text-xs h-8 text-[#FF1493] border-[#FF1493]/30 hover:bg-[#FFF0F8]"
+                    onClick={() => {
+                      setPessoaSelecionada(p)
+                      setModalPerfilAberto(true)
+                    }}
+                  >
+                    <Eye className="w-3.5 h-3.5 mr-1" />
+                    Ver Perfil & Pedidos
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )
         })}
+
+        {/* DIALOG DE PERFIL COMPLETO DO CLIENTE */}
+        <Dialog open={modalPerfilAberto} onOpenChange={setModalPerfilAberto}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            {pessoaSelecionada &&
+              (() => {
+                const pedidosCliente = pedidos.filter((ped) => ped.cliente === pessoaSelecionada.id)
+                const totalGastoCentavos = pedidosCliente.reduce(
+                  (acc, curr) => acc + (curr.total_centavos || 0),
+                  0,
+                )
+
+                return (
+                  <div className="space-y-5 text-[#4E342E]">
+                    <DialogHeader className="border-b border-[#F0E4E0] pb-3">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <DialogTitle className="text-xl font-serif font-bold text-[#4E342E]">
+                            {pessoaSelecionada.nome_razao_social}
+                          </DialogTitle>
+                          {pessoaSelecionada.nome_fantasia && (
+                            <p className="text-xs text-[#4E342E]/70 italic">
+                              {pessoaSelecionada.nome_fantasia}
+                            </p>
+                          )}
+                          <p className="text-xs text-[#4E342E]/60 font-mono mt-1">
+                            Documento: {formatarDocumento(pessoaSelecionada.documento)} •{' '}
+                            {pessoaSelecionada.tipo_pessoa}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[11px] uppercase tracking-wider text-[#4E342E]/60">
+                            Total Comprado
+                          </span>
+                          <div className="text-lg font-bold text-[#FF1493]">
+                            {formatarCentavosParaReal(totalGastoCentavos)}
+                          </div>
+                        </div>
+                      </div>
+                    </DialogHeader>
+
+                    {/* Informações de Endereços Cadastrados */}
+                    <div className="p-3 bg-[#FFF0F8] border border-[#FF1493]/20 rounded-md">
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-[#FF1493] flex items-center gap-1.5 mb-2">
+                        <MapPin className="w-3.5 h-3.5" /> Endereços do Cliente
+                      </h4>
+                      {pessoaSelecionada.enderecos && pessoaSelecionada.enderecos.length > 0 ? (
+                        <div className="space-y-1 text-xs">
+                          {pessoaSelecionada.enderecos.map((end, idx) => (
+                            <div
+                              key={idx}
+                              className="bg-white/80 p-2 rounded border border-[#F0E4E0]"
+                            >
+                              <span className="font-semibold">
+                                {end.tipo_endereco || 'Principal'}:
+                              </span>{' '}
+                              {end.logradouro}, {end.numero}
+                              {end.complemento ? ` (${end.complemento})` : ''} - {end.bairro},{' '}
+                              {end.cidade}/{end.uf} • CEP: {end.cep}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-[#4E342E]/60 italic">
+                          Nenhum endereço formal cadastrado.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* HISTÓRICO DE PEDIDOS COM VALOR E FORMA DE PAGAMENTO EM DESTAQUE */}
+                    <div>
+                      <h4 className="text-sm font-bold text-[#4E342E] flex items-center gap-2 mb-3">
+                        <ShoppingBag className="w-4 h-4 text-[#FF1493]" />
+                        Histórico de Pedidos ({pedidosCliente.length})
+                      </h4>
+
+                      {pedidosCliente.length === 0 ? (
+                        <div className="text-center py-8 bg-gray-50 rounded-md border border-[#F0E4E0] text-xs text-[#4E342E]/60">
+                          Nenhum pedido registrado para este cliente até o momento.
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {pedidosCliente.map((ped) => {
+                            const formaNome =
+                              ped.pagamentos && ped.pagamentos.length > 0
+                                ? ped.pagamentos[0].forma_pagamento
+                                : 'À Vista'
+
+                            return (
+                              <div
+                                key={ped.id}
+                                className="p-3 border border-[#F0E4E0] rounded-lg bg-white shadow-sm space-y-2 hover:border-[#FF1493]/40 transition-colors"
+                              >
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#F0E4E0] pb-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-sm text-[#4E342E]">
+                                      Pedido #{ped.numero_sequencial}
+                                    </span>
+                                    <span className="text-[11px] px-2 py-0.5 rounded bg-gray-100 text-[#4E342E]/70 font-mono">
+                                      {ped.data_emissao
+                                        ? new Date(ped.data_emissao).toLocaleDateString('pt-BR')
+                                        : '-'}
+                                    </span>
+                                    <span
+                                      className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
+                                        ped.status === 'confirmado'
+                                          ? 'bg-emerald-100 text-emerald-800'
+                                          : ped.status === 'cancelado'
+                                            ? 'bg-rose-100 text-rose-800'
+                                            : 'bg-amber-100 text-amber-800'
+                                      }`}
+                                    >
+                                      {ped.status}
+                                    </span>
+                                  </div>
+
+                                  {/* EM DESTAQUE O VALOR E A FORMA DE PAGAMENTO */}
+                                  <div className="flex items-center gap-3 bg-[#FFF0F8] px-3 py-1.5 rounded-md border border-[#FF1493]/30">
+                                    <div>
+                                      <span className="text-[10px] block text-[#4E342E]/60 uppercase font-medium">
+                                        Forma de Pagamento
+                                      </span>
+                                      <span className="text-xs font-bold text-[#4E342E] flex items-center gap-1">
+                                        <CreditCard className="w-3.5 h-3.5 text-[#FF1493]" />
+                                        {formaNome}
+                                      </span>
+                                    </div>
+                                    <div className="border-l border-[#FF1493]/20 pl-3">
+                                      <span className="text-[10px] block text-[#4E342E]/60 uppercase font-medium">
+                                        Valor Total
+                                      </span>
+                                      <span className="text-sm font-bold text-[#FF1493]">
+                                        {formatarCentavosParaReal(ped.total_centavos)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Detalhes operacionais do pedido: Prazo, Endereço e Itens */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1 text-[#4E342E]/80">
+                                  <div>
+                                    <span className="font-semibold text-[#4E342E]">
+                                      Prazo de Entrega:{' '}
+                                    </span>
+                                    {ped.prazo_entrega_dias
+                                      ? `${ped.prazo_entrega_dias} dias úteis`
+                                      : 'A combinar'}
+                                  </div>
+                                  {ped.endereco_entrega_texto && (
+                                    <div className="truncate">
+                                      <span className="font-semibold text-[#4E342E]">
+                                        Entrega em:{' '}
+                                      </span>
+                                      {ped.endereco_entrega_texto}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Lista resumida de itens do pedido */}
+                                {ped.itens && ped.itens.length > 0 && (
+                                  <div className="pt-2 border-t border-[#F0E4E0]/60 space-y-1">
+                                    <span className="text-[11px] font-semibold text-[#4E342E]/70 uppercase">
+                                      Itens Produzidos:
+                                    </span>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                                      {ped.itens.map((it, idxIt) => (
+                                        <div
+                                          key={idxIt}
+                                          className="text-[11px] bg-gray-50 p-1.5 rounded border border-gray-100 flex justify-between items-center"
+                                        >
+                                          <span>
+                                            <strong>{it.quantidade}x</strong>{' '}
+                                            {it.produto_expand?.nome || 'Produto'}
+                                            {it.tipo_item ? ` • Tipo: ${it.tipo_item}` : ''}
+                                            {it.modelo_item ? ` • Mod: ${it.modelo_item}` : ''}
+                                          </span>
+                                          <span className="font-medium text-[#4E342E]">
+                                            {formatarCentavosParaReal(it.total_item_centavos)}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+          </DialogContent>
+        </Dialog>
 
         {pessoasFiltradas.length === 0 && !loading && (
           <div className="col-span-full text-center py-12 text-[#4E342E]/60">

@@ -12,7 +12,8 @@ export async function listarPedidos(): Promise<PedidoVenda[]> {
     const pedidos: PedidoVenda[] = []
     for (const r of records) {
       // Carregar itens
-      let itens: ItemPedido[] = []
+      let itens: (ItemPedido & { tipo_item?: string; modelo_item?: string; foto_item?: string })[] =
+        []
       try {
         const itensRec = await pb.collection('itens_pedido').getFullList({
           filter: `pedido = '${r.id}'`,
@@ -28,6 +29,9 @@ export async function listarPedidos(): Promise<PedidoVenda[]> {
           custo_unitario_momento_centavos: i.getInt('custo_unitario_momento_centavos'),
           desconto_item_centavos: i.getInt('desconto_item_centavos'),
           total_item_centavos: i.getInt('total_item_centavos'),
+          tipo_item: i.getString('tipo_item'),
+          modelo_item: i.getString('modelo_item'),
+          foto_item: i.getString('foto_item'),
           produto_expand: i.expand?.produto as any,
         }))
       } catch {
@@ -69,7 +73,11 @@ export async function listarPedidos(): Promise<PedidoVenda[]> {
         total_centavos: r.getInt('total_centavos'),
         observacao: r.getString('observacao'),
         usuario: r.getString('usuario'),
-        itens: itens,
+        prazo_entrega_dias: r.getInt('prazo_entrega_dias'),
+        data_limite_entrega: r.getString('data_limite_entrega'),
+        endereco_entrega_texto: r.getString('endereco_entrega_texto'),
+        foto_referencia: r.getString('foto_referencia'),
+        itens: itens as any,
         pagamentos: pagamentos,
         cliente_expand: r.expand?.cliente as any,
       })
@@ -91,6 +99,9 @@ export async function criarPedidoCompleto(dados: {
     precoUnitarioCentavos: number
     custoUnitarioCentavos: number
     descontoCentavos?: number
+    tipoItem?: string
+    modeloItem?: string
+    fotoItem?: string
   }>
   pagamentos: Array<{
     formaPagamento: FormaPagamentoCodigo
@@ -103,6 +114,10 @@ export async function criarPedidoCompleto(dados: {
   acrescimoCentavos?: number
   snapshotFrete?: any
   observacao?: string
+  prazoEntregaDias?: number
+  dataLimiteEntrega?: string
+  enderecoEntregaTexto?: string
+  fotoReferencia?: string
   confirmarImediatamente?: boolean
 }): Promise<{ pedidoId: string; numeroSequencial: number; status: string }> {
   if (!dados.clienteId) throw new Error('Cliente é obrigatório.')
@@ -164,10 +179,14 @@ export async function criarPedidoCompleto(dados: {
     acrescimo_centavos: Math.round(acrescimo),
     total_centavos: Math.round(total),
     observacao: obsFinal,
+    prazo_entrega_dias: dados.prazoEntregaDias || 0,
+    data_limite_entrega: dados.dataLimiteEntrega || null,
+    endereco_entrega_texto: dados.enderecoEntregaTexto || '',
+    foto_referencia: dados.fotoReferencia || '',
     usuario: userId,
   })
 
-  // 2. Gravar itens do pedido (R12)
+  // 2. Gravar itens do pedido com tipo e modelo (R12)
   for (const item of dados.itens) {
     const totItem = item.quantidade * item.precoUnitarioCentavos - (item.descontoCentavos || 0)
     await pb.collection('itens_pedido').create({
@@ -179,6 +198,9 @@ export async function criarPedidoCompleto(dados: {
       custo_unitario_momento_centavos: Math.round(item.custoUnitarioCentavos),
       desconto_item_centavos: Math.round(item.descontoCentavos || 0),
       total_item_centavos: Math.round(totItem),
+      tipo_item: item.tipoItem || '',
+      modelo_item: item.modeloItem || '',
+      foto_item: item.fotoItem || '',
     })
   }
 

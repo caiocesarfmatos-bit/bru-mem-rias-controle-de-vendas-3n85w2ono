@@ -219,14 +219,18 @@ export interface PedidoVenda {
   numero_sequencial: number
   cliente: string
   data_emissao: string
-  vendedor_responsavel: string
+  vendedor_responsavel?: string
   status: StatusPedido
   subtotal_centavos: number
   desconto_centavos: number
   acrescimo_centavos: number
   total_centavos: number
   observacao?: string
-  usuario: string
+  usuario?: string
+  prazo_entrega_dias?: number
+  data_limite_entrega?: string
+  endereco_entrega_texto?: string
+  foto_referencia?: string
   itens?: ItemPedido[]
   pagamentos?: PagamentoPedido[]
   cliente_expand?: Pessoa
@@ -240,11 +244,13 @@ export interface ItemPedido {
   quantidade: number
   preco_unitario_praticado_centavos: number
   custo_unitario_momento_centavos: number
-  desconto_item_centavos?: number
+  desconto_item_centavos: number
   total_item_centavos: number
+  tipo_item?: string
+  modelo_item?: string
+  foto_item?: string
   produto_expand?: Produto
 }
-
 export interface PagamentoPedido {
   id: string
   pedido: string

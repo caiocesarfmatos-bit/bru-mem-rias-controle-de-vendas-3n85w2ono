@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-25T22:17:52.719Z",
+  "generatedAt": "2026-10-25T22:50:52.845Z",
   "collections": [
     {
       "name": "users",
@@ -1183,6 +1183,30 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "prazo_entrega_dias",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_limite_entrega",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "endereco_entrega_texto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "foto_referencia",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -1266,6 +1290,24 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "tipo_item",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "modelo_item",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "foto_item",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -1950,6 +1992,157 @@
         "CREATE INDEX idx_faixas_frete_regiao ON faixas_frete (regiao_destino, ativo)",
         "CREATE INDEX idx_faixas_frete_modalidade ON faixas_frete (modalidade)"
       ]
+    },
+    {
+      "name": "insumos_producao",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.perfil = 'administrador'"
+      },
+      "fields": [
+        {
+          "name": "codigo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "categoria",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "unidade_medida",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "custo_unitario_centavos",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "estoque_atual",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "estoque_minimo",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fornecedor_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_insumos_prod_cod ON insumos_producao (codigo)",
+        "CREATE INDEX idx_insumos_prod_nome ON insumos_producao (nome)"
+      ]
+    },
+    {
+      "name": "fichas_producao",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.perfil = 'administrador'"
+      },
+      "fields": [
+        {
+          "name": "produto",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "produtos"
+        },
+        {
+          "name": "insumo",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "insumos_producao"
+        },
+        {
+          "name": "quantidade_insumo",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "rendimento_produtos",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "perda_estimada_pct",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "instrucoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_ficha_prod_insumo ON fichas_producao (produto, insumo)"]
     }
   ]
 }

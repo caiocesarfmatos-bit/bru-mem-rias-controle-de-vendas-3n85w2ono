@@ -8,6 +8,9 @@ import {
   criarFaixaFrete,
   atualizarFaixaFrete,
   excluirFaixaFrete,
+  consultarStatusCorreios,
+  salvarCredencialCorreios,
+  StatusIntegracaoCorreios,
   FaixaFreteRegistro,
   RegiaoFrete,
   ModalidadeFrete,
@@ -58,6 +61,11 @@ export function SecaoFaixasFrete() {
   const [faixas, setFaixas] = useState<FaixaFreteRegistro[]>([])
   const [carregando, setCarregando] = useState(false)
   const [filtroRegiao, setFiltroRegiao] = useState<string>('TODAS')
+  const [statusCorreios, setStatusCorreios] = useState<StatusIntegracaoCorreios | null>(null)
+  const [modalCorreiosAberto, setModalCorreiosAberto] = useState(false)
+  const [tokenCorreiosInput, setTokenCorreiosInput] = useState('')
+  const [usuarioCorreiosInput, setUsuarioCorreiosInput] = useState('')
+  const [salvandoCorreios, setSalvandoCorreios] = useState(false)
 
   // Modal formulário
   const [modalAberto, setModalAberto] = useState(false)
@@ -83,8 +91,12 @@ export function SecaoFaixasFrete() {
   const carregarDados = async () => {
     setCarregando(true)
     try {
-      const lista = await listarFaixasFrete(false)
+      const [lista, statCorreios] = await Promise.all([
+        listarFaixasFrete(false),
+        consultarStatusCorreios(),
+      ])
       setFaixas(lista)
+      setStatusCorreios(statCorreios)
     } catch (err: any) {
       toast({
         title: 'Erro ao carregar faixas',
@@ -255,6 +267,47 @@ export function SecaoFaixasFrete() {
 
   return (
     <div className="space-y-6">
+      {/* Bloco de Integração Oficial Correios com Honestidade Técnica */}
+      <Card className="border-2 border-[#FF1493]/30 bg-gradient-to-r from-white via-[#FFF8FA] to-[#FFF0F8] shadow-sm">
+        <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Truck className="w-5 h-5 text-[#FF1493]" />
+              <h3 className="font-bold text-sm text-[#4E342E]">
+                Integração Oficial de Frete Correios (Sedex & PAC Nacional)
+              </h3>
+              <Badge
+                variant={statusCorreios?.configurado ? 'default' : 'secondary'}
+                className={
+                  statusCorreios?.configurado
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-amber-100 text-amber-800'
+                }
+              >
+                {statusCorreios?.configurado
+                  ? 'API Oficial Ativa'
+                  : 'Faixas Locais + ViaCEP Ativas'}
+              </Badge>
+            </div>
+            <p className="text-xs text-[#4E342E]/70 max-w-2xl">
+              {statusCorreios?.mensagem ||
+                'A API dos Correios exige credencial de contrato (token). Na ausência do token cadastrado, o sistema utiliza com segurança a tabela própria com 13 faixas e CEP integrado via ViaCEP.'}
+            </p>
+          </div>
+
+          {usuario?.perfil === 'administrador' && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setModalCorreiosAberto(true)}
+              className="text-xs border-[#FF1493]/30 text-[#FF1493] hover:bg-[#FFF0F8]"
+            >
+              Configurar Credencial Correios
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Cabeçalho informativo */}
       <Card className="border-border bg-card">
         <CardHeader className="pb-3">
@@ -449,6 +502,109 @@ export function SecaoFaixasFrete() {
           ))}
         </div>
       )}
+
+      {/* Modal de Configuração de Credencial Correios (Servidor Seguro) */}
+      <Dialog open={modalCorreiosAberto} onOpenChange={setModalCorreiosAberto}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-[#4E342E]">
+              Credencial Oficial dos Correios
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs text-[#4E342E]">
+            <p className="text-muted-foreground leading-relaxed">
+              O token e usuário do contrato são armazenados{' '}
+              <strong>exclusivamente no servidor</strong> com registro de auditoria, nunca expostos
+              no código cliente.
+            </p>
+
+            <div>
+              <Label className="text-xs">Usuário / Cartão de Postagem</Label>
+              <Input
+                value={usuarioCorreiosInput}
+                onChange={(e) => setUsuarioCorreiosInput(e.target.value)}
+                placeholder="Ex: 0076543210"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs">Token / Chave de Acesso dos Correios</Label>
+              <Input
+                type="password"
+                value={tokenCorreiosInput}
+                onChange={(e) => setTokenCorreiosInput(e.target.value)}
+                placeholder="Insira o token gerado no portal Meus Correios"
+              />
+            </div>
+
+            <div className="p-2.5 bg-[#FFF0F8] border border-[#FF1493]/20 rounded text-[11px] text-[#4E342E]/80">
+              Caso você não possua contrato ativo com os Correios agora, basta deixar em branco: o
+              aplicativo continuará utilizando automaticamente a tabela própria de faixas
+              (Recreio/RJ) com cálculo por CEP.
+            </div>
+          </div>
+
+          <DialogFooter className="flex justify-between sm:justify-between">
+            {statusCorreios?.configurado && (
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                disabled={salvandoCorreios}
+                onClick={async () => {
+                  setSalvandoCorreios(true)
+                  try {
+                    await salvarCredencialCorreios('', '', true)
+                    toast({
+                      title: 'Credencial removida',
+                      description: 'Sistema retornou às faixas próprias.',
+                    })
+                    setModalCorreiosAberto(false)
+                    carregarDados()
+                  } finally {
+                    setSalvandoCorreios(false)
+                  }
+                }}
+              >
+                Remover Credencial
+              </Button>
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setModalCorreiosAberto(false)}>
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                className="bg-[#FF1493] text-white hover:bg-[#D8117E]"
+                disabled={salvandoCorreios || !tokenCorreiosInput.trim()}
+                onClick={async () => {
+                  setSalvandoCorreios(true)
+                  try {
+                    await salvarCredencialCorreios(tokenCorreiosInput, usuarioCorreiosInput)
+                    toast({
+                      title: 'Sucesso',
+                      description: 'Credencial dos Correios salva no servidor.',
+                    })
+                    setModalCorreiosAberto(false)
+                    carregarDados()
+                  } catch (err: any) {
+                    toast({
+                      title: 'Erro',
+                      description: err.message || 'Falha ao salvar token.',
+                      variant: 'destructive',
+                    })
+                  } finally {
+                    setSalvandoCorreios(false)
+                  }
+                }}
+              >
+                {salvandoCorreios ? 'Salvando...' : 'Salvar no Servidor'}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Criação / Edição */}
       <Dialog open={modalAberto} onOpenChange={setModalAberto}>

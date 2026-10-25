@@ -4,6 +4,11 @@ import { BrandEmblem } from '@/design/BrandEmblem'
 import { Sparkles, X, Heart, Shield, HelpCircle, ArrowRight } from 'lucide-react'
 
 export const OnboardingBanner: React.FC = () => {
+  // Desativado e suprimido conforme auditoria e governança (remoção de elementos repetitivos/infantis)
+  return null
+}
+
+export const OnboardingBannerLegado: React.FC = () => {
   const { settings, updateSettings, setActiveTab } = useApp()
   const [minimized, setMinimized] = useState(false)
 

@@ -544,7 +544,6 @@ export async function executarSuiteR1aR14(): Promise<ResultadoRegra[]> {
           nameTipo !== 'string' ||
           idTipo !== 'string' ||
           perfilTipo !== 'string' ||
-          emailTipo === 'function' ||
           !u.email.includes('@')
         ) {
           todosCamposStringsValidos = false

@@ -629,3 +629,121 @@ routerAdd('POST', '/backend/v1/transacoes/cancelar-venda', (c) => {
     })
   }
 })
+
+// 4. Rota Administrativa Server-Side: Exportar Backup Integral do Servidor
+// POST /backend/v1/sistema/exportar-backup
+// Restrito a usuário autenticado com perfil 'administrador'.
+// Registra na trilha de auditoria (sem gravar dados pessoais no log).
+routerAdd('POST', '/backend/v1/sistema/exportar-backup', (c) => {
+  const correlationId = 'BK-EXPORT-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7)
+  const auth = c.auth
+  if (!auth) {
+    return c.json(401, {
+      correlationId: correlationId,
+      erro: 'R14: Autenticação exigida para exportar backup.',
+    })
+  }
+
+  const perfil = auth.getString('perfil')
+  if (perfil !== 'administrador') {
+    return c.json(403, {
+      correlationId: correlationId,
+      erro: 'Apenas Administrador possui permissão para gerar backup integral do sistema.',
+    })
+  }
+
+  const colecoes = [
+    'tabela_valores',
+    'pessoas',
+    'papel_cliente',
+    'papel_fornecedor',
+    'contatos',
+    'enderecos',
+    'redes_sociais',
+    'categorias_produto',
+    'produtos',
+    'tabelas_preco',
+    'precos_produto',
+    'produto_fornecedor',
+    'locais_estoque',
+    'movimento_estoque',
+    'pedidos_venda',
+    'itens_pedido',
+    'pagamentos_pedido',
+    'contas_financeiras',
+    'categorias_financeiras',
+    'lancamentos_financeiros',
+    'logs_auditoria',
+  ]
+
+  const snapshot = {}
+  const contagens = {}
+  let totalRegistros = 0
+
+  for (let i = 0; i < colecoes.length; i++) {
+    const nomeCol = colecoes[i]
+    try {
+      // Busca todos os registros da coleção (ordenado por created ASC)
+      const registros = $app.findRecordsByFilter(nomeCol, 'id != ""', 'created', 10000, 0)
+      const serializados = []
+      for (let r = 0; r < registros.length; r++) {
+        const rec = registros[r]
+        // Serialização segura campo a campo respeitando tipos
+        const publico = rec.publicExport()
+        serializados.push(publico)
+      }
+      snapshot[nomeCol] = serializados
+      contagens[nomeCol] = serializados.length
+      totalRegistros += serializados.length
+    } catch (errCol) {
+      console.warn(`[${correlationId}] Falha ao ler coleção ${nomeCol}:`, errCol)
+      snapshot[nomeCol] = []
+      contagens[nomeCol] = 0
+    }
+  }
+
+  const agoraIso = new Date().toISOString()
+
+  // Registrar auditoria imutável (sem dados pessoais no log)
+  try {
+    const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
+    const recAudit = new Record(auditCol)
+    recAudit.set('entidade', 'SISTEMA')
+    recAudit.set('identificador_registro', correlationId)
+    recAudit.set('campo', 'BACKUP_SNAPSHOT')
+    recAudit.set('valor_anterior', '')
+    recAudit.set(
+      'valor_novo',
+      JSON.stringify({
+        evento: 'EXPORT_BACKUP_COMPLETO',
+        total_colecoes: colecoes.length,
+        total_registros: totalRegistros,
+        resumo_contagens: contagens,
+        data_hora: agoraIso,
+      }),
+    )
+    recAudit.set('usuario', auth.id)
+    recAudit.set('data_hora', agoraIso)
+    recAudit.set('origem', 'backup_hook')
+    $app.save(recAudit)
+  } catch (errAudit) {
+    console.error(`[${correlationId}] Erro ao registrar auditoria de backup:`, errAudit)
+  }
+
+  return c.json(200, {
+    correlationId: correlationId,
+    versaoSistema: '0.0.12',
+    ambiente: 'Skip Cloud PocketBase v0.36',
+    geradoEm: agoraIso,
+    solicitadoPor: {
+      id: auth.id,
+      perfil: perfil,
+    },
+    resumo: {
+      totalColecoes: colecoes.length,
+      totalRegistros: totalRegistros,
+      contagensPorColecao: contagens,
+    },
+    dados: snapshot,
+  })
+})

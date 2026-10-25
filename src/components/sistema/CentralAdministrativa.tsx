@@ -6,6 +6,7 @@ import { ModuloVendas } from './ModuloVendas'
 import { ModuloFinanceiro } from './ModuloFinanceiro'
 import { ModuloRelatorios } from './ModuloRelatorios'
 import { ModuloUsuarios } from './ModuloUsuarios'
+import { SecaoCentroBackup } from './SecaoCentroBackup'
 import {
   Users,
   Package,
@@ -15,10 +16,18 @@ import {
   Shield,
   LogOut,
   Sparkles,
+  Archive,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-type ModuloId = 'vendas' | 'pessoas' | 'estoque' | 'financeiro' | 'relatorios' | 'usuarios'
+type ModuloId =
+  | 'vendas'
+  | 'pessoas'
+  | 'estoque'
+  | 'financeiro'
+  | 'relatorios'
+  | 'usuarios'
+  | 'backup'
 
 export const CentralAdministrativa: React.FC = () => {
   const { usuario, logout, temPermissao } = useAuth()
@@ -38,6 +47,8 @@ export const CentralAdministrativa: React.FC = () => {
         return <ModuloRelatorios />
       case 'usuarios':
         return <ModuloUsuarios />
+      case 'backup':
+        return <SecaoCentroBackup />
       default:
         return <ModuloVendas />
     }
@@ -148,17 +159,31 @@ export const CentralAdministrativa: React.FC = () => {
             </button>
 
             {usuario?.perfil === 'administrador' && (
-              <button
-                onClick={() => setModuloAtivo('usuarios')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
-                  moduloAtivo === 'usuarios'
-                    ? 'bg-[#FF1493] text-white shadow-sm'
-                    : 'text-[#4E342E]/80 hover:bg-white hover:text-[#4E342E]'
-                }`}
-              >
-                <Shield className="w-3.5 h-3.5" />
-                Usuários & Acesso
-              </button>
+              <>
+                <button
+                  onClick={() => setModuloAtivo('usuarios')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
+                    moduloAtivo === 'usuarios'
+                      ? 'bg-[#FF1493] text-white shadow-sm'
+                      : 'text-[#4E342E]/80 hover:bg-white hover:text-[#4E342E]'
+                  }`}
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  Usuários & Acesso
+                </button>
+
+                <button
+                  onClick={() => setModuloAtivo('backup')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
+                    moduloAtivo === 'backup'
+                      ? 'bg-[#FF1493] text-white shadow-sm'
+                      : 'text-[#4E342E]/80 hover:bg-white hover:text-[#4E342E]'
+                  }`}
+                >
+                  <Archive className="w-3.5 h-3.5" />
+                  Backup & Legado v5
+                </button>
+              </>
             )}
           </div>
         </div>

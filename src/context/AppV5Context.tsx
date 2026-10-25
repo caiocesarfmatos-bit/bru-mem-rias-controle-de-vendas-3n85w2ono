@@ -215,36 +215,10 @@ export const AppV5Provider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => clearInterval(interval)
   }, [bloqueadoAte])
 
-  // Timer de expiração de sessão por inatividade
-  useEffect(() => {
-    if (!isAutenticado) return
-
-    const tempoExpiracaoMin =
-      data.parametros.find((p) => p.chave === CHAVES_PARAMETROS.TEMPO_EXPIRACAO_MINUTOS)?.valor ||
-      30
-    const limiteMs = tempoExpiracaoMin * 60 * 1000
-
-    const interval = setInterval(() => {
-      if (Date.now() - ultimoAcessoTimestamp > limiteMs) {
-        setIsAutenticado(false)
-        console.warn('Sessão expirada por inatividade.')
-      }
-    }, 10000)
-
-    // Listener de atividade do usuário para resetar o timer
-    const renovarAcesso = () => {
-      setUltimoAcessoTimestamp(Date.now())
-    }
-
-    window.addEventListener('pointerdown', renovarAcesso)
-    window.addEventListener('keydown', renovarAcesso)
-
-    return () => {
-      clearInterval(interval)
-      window.removeEventListener('pointerdown', renovarAcesso)
-      window.removeEventListener('keydown', renovarAcesso)
-    }
-  }, [isAutenticado, ultimoAcessoTimestamp, data.parametros])
+  // Decisão de negócio e solicitação explícita do usuário:
+  // Remoção permanente de desligamento automático e bloqueio de tela por inatividade.
+  // A sessão permanece ativa até o usuário clicar em "Sair" explicitamente.
+  // Nenhum timer de inatividade desloga ou bloqueia o sistema.
 
   // 1. OBTENÇÃO DE PARÂMETROS
   const getParametro = useCallback(

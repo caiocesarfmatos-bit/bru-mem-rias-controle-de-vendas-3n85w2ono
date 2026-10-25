@@ -1,8 +1,723 @@
 // pocketbase/hooks/transacoes.pb.js
-// Endpoints e validações server-side para integridade transacional, imutabilidade e auditoria
+// Endpoints e validações server-side para integridade transacional, imutabilidade, auditoria,
+// rotina de backup robotizado (10h, 17h, 23h Brasília) e código restrito de acesso do ADM.
 
-// 1. Auditoria e Imutabilidade Server-side
-// Garantir R1: nenhum movimento de estoque sem documento ou justificativa com autor
+// =========================================================================
+// 1. CRON JOBS — BACKUP AUTOMÁTICO E ROBOTIZADO (10h, 17h, 23h Brasília)
+// =========================================================================
+// Horário oficial de Brasília (America/Sao_Paulo) é UTC-3 permanente.
+// 10:00 Brasília = 13:00 UTC -> cron "0 13 * * *"
+// 17:00 Brasília = 20:00 UTC -> cron "0 20 * * *"
+// 23:00 Brasília = 02:00 UTC (dia seguinte) -> cron "0 2 * * *"
+
+cronAdd('backup_auto_10h_brasilia', '0 13 * * *', () => {
+  const colecoes = [
+    'tabela_valores',
+    'pessoas',
+    'papel_cliente',
+    'papel_fornecedor',
+    'contatos',
+    'enderecos',
+    'redes_sociais',
+    'categorias_produto',
+    'produtos',
+    'tabelas_preco',
+    'precos_produto',
+    'produto_fornecedor',
+    'locais_estoque',
+    'movimento_estoque',
+    'pedidos_venda',
+    'itens_pedido',
+    'pagamentos_pedido',
+    'contas_financeiras',
+    'categorias_financeiras',
+    'lancamentos_financeiros',
+    'logs_auditoria',
+  ]
+  const correlationId = 'BK-AUTO-10H-' + Date.now()
+  const agoraIso = new Date().toISOString()
+  const snapshot = {}
+  const contagens = {}
+  let totalRegistros = 0
+  let statusFinal = 'ok'
+  let detalheErro = ''
+
+  for (let i = 0; i < colecoes.length; i++) {
+    const nomeCol = colecoes[i]
+    try {
+      const registros = $app.findRecordsByFilter(nomeCol, 'id != ""', 'created', 10000, 0)
+      const serializados = []
+      for (let r = 0; r < registros.length; r++) {
+        serializados.push(registros[r].publicExport())
+      }
+      snapshot[nomeCol] = serializados
+      contagens[nomeCol] = serializados.length
+      totalRegistros += serializados.length
+    } catch (errCol) {
+      statusFinal = 'falha'
+      detalheErro += `Falha ${nomeCol}: ${errCol.message || String(errCol)}; `
+      snapshot[nomeCol] = []
+      contagens[nomeCol] = 0
+    }
+  }
+
+  const tamanhoBytes = JSON.stringify(snapshot).length
+
+  try {
+    const bkCol = $app.findCollectionByNameOrId('backups_sistema')
+    const recBk = new Record(bkCol)
+    recBk.set('tipo', 'automatico')
+    recBk.set('status', statusFinal)
+    recBk.set('horario_agendado', '10:00 (Brasília)')
+    recBk.set('data_hora', agoraIso)
+    recBk.set('total_colecoes', colecoes.length)
+    recBk.set('total_registros', totalRegistros)
+    recBk.set('tamanho_bytes', tamanhoBytes)
+    recBk.set('resumo_contagens', contagens)
+    recBk.set('detalhe_erro', detalheErro)
+    recBk.set('correlation_id', correlationId)
+    recBk.set('dados_json', snapshot)
+    $app.save(recBk)
+  } catch (errSave) {
+    console.error('Falha ao salvar backup 10h:', errSave)
+  }
+
+  try {
+    const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
+    const recAudit = new Record(auditCol)
+    recAudit.set('entidade', 'SISTEMA')
+    recAudit.set('identificador_registro', correlationId)
+    recAudit.set('campo', 'BACKUP_SNAPSHOT')
+    recAudit.set('valor_anterior', '')
+    recAudit.set(
+      'valor_novo',
+      JSON.stringify({
+        evento: 'BACKUP_ROBOTIZADO_AGENDADO',
+        tipo: 'automatico',
+        status: statusFinal,
+        horario_agendado: '10:00 (Brasília)',
+        total_colecoes: colecoes.length,
+        total_registros: totalRegistros,
+        tamanho_bytes: tamanhoBytes,
+        resumo_contagens: contagens,
+        detalhe_erro: detalheErro,
+        data_hora: agoraIso,
+      }),
+    )
+    recAudit.set('usuario', 'robot_cron_10h')
+    recAudit.set('data_hora', agoraIso)
+    recAudit.set('origem', 'cron_job')
+    $app.save(recAudit)
+  } catch (_) {}
+})
+
+cronAdd('backup_auto_17h_brasilia', '0 20 * * *', () => {
+  const colecoes = [
+    'tabela_valores',
+    'pessoas',
+    'papel_cliente',
+    'papel_fornecedor',
+    'contatos',
+    'enderecos',
+    'redes_sociais',
+    'categorias_produto',
+    'produtos',
+    'tabelas_preco',
+    'precos_produto',
+    'produto_fornecedor',
+    'locais_estoque',
+    'movimento_estoque',
+    'pedidos_venda',
+    'itens_pedido',
+    'pagamentos_pedido',
+    'contas_financeiras',
+    'categorias_financeiras',
+    'lancamentos_financeiros',
+    'logs_auditoria',
+  ]
+  const correlationId = 'BK-AUTO-17H-' + Date.now()
+  const agoraIso = new Date().toISOString()
+  const snapshot = {}
+  const contagens = {}
+  let totalRegistros = 0
+  let statusFinal = 'ok'
+  let detalheErro = ''
+
+  for (let i = 0; i < colecoes.length; i++) {
+    const nomeCol = colecoes[i]
+    try {
+      const registros = $app.findRecordsByFilter(nomeCol, 'id != ""', 'created', 10000, 0)
+      const serializados = []
+      for (let r = 0; r < registros.length; r++) {
+        serializados.push(registros[r].publicExport())
+      }
+      snapshot[nomeCol] = serializados
+      contagens[nomeCol] = serializados.length
+      totalRegistros += serializados.length
+    } catch (errCol) {
+      statusFinal = 'falha'
+      detalheErro += `Falha ${nomeCol}: ${errCol.message || String(errCol)}; `
+      snapshot[nomeCol] = []
+      contagens[nomeCol] = 0
+    }
+  }
+
+  const tamanhoBytes = JSON.stringify(snapshot).length
+
+  try {
+    const bkCol = $app.findCollectionByNameOrId('backups_sistema')
+    const recBk = new Record(bkCol)
+    recBk.set('tipo', 'automatico')
+    recBk.set('status', statusFinal)
+    recBk.set('horario_agendado', '17:00 (Brasília)')
+    recBk.set('data_hora', agoraIso)
+    recBk.set('total_colecoes', colecoes.length)
+    recBk.set('total_registros', totalRegistros)
+    recBk.set('tamanho_bytes', tamanhoBytes)
+    recBk.set('resumo_contagens', contagens)
+    recBk.set('detalhe_erro', detalheErro)
+    recBk.set('correlation_id', correlationId)
+    recBk.set('dados_json', snapshot)
+    $app.save(recBk)
+  } catch (errSave) {
+    console.error('Falha ao salvar backup 17h:', errSave)
+  }
+
+  try {
+    const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
+    const recAudit = new Record(auditCol)
+    recAudit.set('entidade', 'SISTEMA')
+    recAudit.set('identificador_registro', correlationId)
+    recAudit.set('campo', 'BACKUP_SNAPSHOT')
+    recAudit.set('valor_anterior', '')
+    recAudit.set(
+      'valor_novo',
+      JSON.stringify({
+        evento: 'BACKUP_ROBOTIZADO_AGENDADO',
+        tipo: 'automatico',
+        status: statusFinal,
+        horario_agendado: '17:00 (Brasília)',
+        total_colecoes: colecoes.length,
+        total_registros: totalRegistros,
+        tamanho_bytes: tamanhoBytes,
+        resumo_contagens: contagens,
+        detalhe_erro: detalheErro,
+        data_hora: agoraIso,
+      }),
+    )
+    recAudit.set('usuario', 'robot_cron_17h')
+    recAudit.set('data_hora', agoraIso)
+    recAudit.set('origem', 'cron_job')
+    $app.save(recAudit)
+  } catch (_) {}
+})
+
+cronAdd('backup_auto_23h_brasilia', '0 2 * * *', () => {
+  const colecoes = [
+    'tabela_valores',
+    'pessoas',
+    'papel_cliente',
+    'papel_fornecedor',
+    'contatos',
+    'enderecos',
+    'redes_sociais',
+    'categorias_produto',
+    'produtos',
+    'tabelas_preco',
+    'precos_produto',
+    'produto_fornecedor',
+    'locais_estoque',
+    'movimento_estoque',
+    'pedidos_venda',
+    'itens_pedido',
+    'pagamentos_pedido',
+    'contas_financeiras',
+    'categorias_financeiras',
+    'lancamentos_financeiros',
+    'logs_auditoria',
+  ]
+  const correlationId = 'BK-AUTO-23H-' + Date.now()
+  const agoraIso = new Date().toISOString()
+  const snapshot = {}
+  const contagens = {}
+  let totalRegistros = 0
+  let statusFinal = 'ok'
+  let detalheErro = ''
+
+  for (let i = 0; i < colecoes.length; i++) {
+    const nomeCol = colecoes[i]
+    try {
+      const registros = $app.findRecordsByFilter(nomeCol, 'id != ""', 'created', 10000, 0)
+      const serializados = []
+      for (let r = 0; r < registros.length; r++) {
+        serializados.push(registros[r].publicExport())
+      }
+      snapshot[nomeCol] = serializados
+      contagens[nomeCol] = serializados.length
+      totalRegistros += serializados.length
+    } catch (errCol) {
+      statusFinal = 'falha'
+      detalheErro += `Falha ${nomeCol}: ${errCol.message || String(errCol)}; `
+      snapshot[nomeCol] = []
+      contagens[nomeCol] = 0
+    }
+  }
+
+  const tamanhoBytes = JSON.stringify(snapshot).length
+
+  try {
+    const bkCol = $app.findCollectionByNameOrId('backups_sistema')
+    const recBk = new Record(bkCol)
+    recBk.set('tipo', 'automatico')
+    recBk.set('status', statusFinal)
+    recBk.set('horario_agendado', '23:00 (Brasília)')
+    recBk.set('data_hora', agoraIso)
+    recBk.set('total_colecoes', colecoes.length)
+    recBk.set('total_registros', totalRegistros)
+    recBk.set('tamanho_bytes', tamanhoBytes)
+    recBk.set('resumo_contagens', contagens)
+    recBk.set('detalhe_erro', detalheErro)
+    recBk.set('correlation_id', correlationId)
+    recBk.set('dados_json', snapshot)
+    $app.save(recBk)
+  } catch (errSave) {
+    console.error('Falha ao salvar backup 23h:', errSave)
+  }
+
+  try {
+    const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
+    const recAudit = new Record(auditCol)
+    recAudit.set('entidade', 'SISTEMA')
+    recAudit.set('identificador_registro', correlationId)
+    recAudit.set('campo', 'BACKUP_SNAPSHOT')
+    recAudit.set('valor_anterior', '')
+    recAudit.set(
+      'valor_novo',
+      JSON.stringify({
+        evento: 'BACKUP_ROBOTIZADO_AGENDADO',
+        tipo: 'automatico',
+        status: statusFinal,
+        horario_agendado: '23:00 (Brasília)',
+        total_colecoes: colecoes.length,
+        total_registros: totalRegistros,
+        tamanho_bytes: tamanhoBytes,
+        resumo_contagens: contagens,
+        detalhe_erro: detalheErro,
+        data_hora: agoraIso,
+      }),
+    )
+    recAudit.set('usuario', 'robot_cron_23h')
+    recAudit.set('data_hora', agoraIso)
+    recAudit.set('origem', 'cron_job')
+    $app.save(recAudit)
+  } catch (_) {}
+})
+
+// =========================================================================
+// 2. SEGURANÇA: CÓDIGO RESTRITO DE ACESSO DO ADM (Hash SHA-256 no Servidor)
+// =========================================================================
+
+// POST /backend/v1/sistema/usuarios/criar-com-codigo
+routerAdd('POST', '/backend/v1/sistema/usuarios/criar-com-codigo', (c) => {
+  const correlationId =
+    'USR-CREATE-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6)
+  const auth = c.auth
+  if (!auth) {
+    try {
+      const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
+      const rec = new Record(auditCol)
+      rec.set('entidade', 'SEGURANCA_CODIGO_REST_ADM')
+      rec.set('identificador_registro', 'anonimo')
+      rec.set('campo', 'VALIDACAO_CODIGO_RESTRITO')
+      rec.set(
+        'valor_novo',
+        JSON.stringify({ evento: 'CODIGO_RESTRITO_RECUSADO', motivo: 'Não autenticado' }),
+      )
+      rec.set('usuario', 'anonimo')
+      rec.set('data_hora', new Date().toISOString())
+      rec.set('origem', 'auth_codigo_restrito_hook')
+      $app.save(rec)
+    } catch (_) {}
+    return c.json(401, { correlationId: correlationId, erro: 'Autenticação exigida.' })
+  }
+
+  const perfilCaller = auth.getString('perfil')
+  if (perfilCaller !== 'administrador') {
+    try {
+      const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
+      const rec = new Record(auditCol)
+      rec.set('entidade', 'SEGURANCA_CODIGO_REST_ADM')
+      rec.set('identificador_registro', auth.id)
+      rec.set('campo', 'VALIDACAO_CODIGO_RESTRITO')
+      rec.set(
+        'valor_novo',
+        JSON.stringify({ evento: 'CODIGO_RESTRITO_RECUSADO', motivo: 'Usuário não administrador' }),
+      )
+      rec.set('usuario', auth.id)
+      rec.set('data_hora', new Date().toISOString())
+      rec.set('origem', 'auth_codigo_restrito_hook')
+      $app.save(rec)
+    } catch (_) {}
+    return c.json(403, {
+      correlationId: correlationId,
+      erro: 'Apenas Administrador possui autorização para cadastrar colaboradores.',
+    })
+  }
+
+  const body = c.requestInfo().body || {}
+  const codigoRestritoInformado = (body.codigoRestrito || '').toString().trim()
+  const email = (body.email || '').toString().trim().toLowerCase()
+  const name = (body.name || '').toString().trim()
+  const perfilNovo = (body.perfil || 'vendedor').toString().trim()
+  const senha = (body.senha || '').toString()
+
+  if (!codigoRestritoInformado) {
+    try {
+      const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
+      const rec = new Record(auditCol)
+      rec.set('entidade', 'SEGURANCA_CODIGO_REST_ADM')
+      rec.set('identificador_registro', auth.id)
+      rec.set('campo', 'VALIDACAO_CODIGO_RESTRITO')
+      rec.set(
+        'valor_novo',
+        JSON.stringify({ evento: 'CODIGO_RESTRITO_RECUSADO', motivo: 'Código não fornecido' }),
+      )
+      rec.set('usuario', auth.id)
+      rec.set('data_hora', new Date().toISOString())
+      rec.set('origem', 'auth_codigo_restrito_hook')
+      $app.save(rec)
+    } catch (_) {}
+    return c.json(403, {
+      correlationId: correlationId,
+      erro: 'Código restrito de acesso do Administrador é obrigatório.',
+    })
+  }
+
+  let hashEsperado = '3c9e8394083ea25a99c7374f9b2b26c7d65246faba0e594a466f7ef934c686a3'
+  try {
+    const recSeg = $app.findFirstRecordByData(
+      'parametros_seguranca',
+      'chave',
+      'CODIGO_RESTRITO_ADM',
+    )
+    hashEsperado = recSeg.getString('valor_hash')
+  } catch (_) {}
+
+  const hashInformado = $security.sha256(codigoRestritoInformado)
+  let codigoValido = true
+  if (hashEsperado.length !== hashInformado.length) {
+    codigoValido = false
+  } else {
+    let diff = 0
+    for (let k = 0; k < hashEsperado.length; k++) {
+      diff |= hashEsperado.charCodeAt(k) ^ hashInformado.charCodeAt(k)
+    }
+    codigoValido = diff === 0
+  }
+
+  if (!codigoValido) {
+    try {
+      const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
+      const rec = new Record(auditCol)
+      rec.set('entidade', 'SEGURANCA_CODIGO_REST_ADM')
+      rec.set('identificador_registro', auth.id)
+      rec.set('campo', 'VALIDACAO_CODIGO_RESTRITO')
+      rec.set(
+        'valor_novo',
+        JSON.stringify({ evento: 'CODIGO_RESTRITO_RECUSADO', motivo: 'Código incorreto' }),
+      )
+      rec.set('usuario', auth.id)
+      rec.set('data_hora', new Date().toISOString())
+      rec.set('origem', 'auth_codigo_restrito_hook')
+      $app.save(rec)
+    } catch (_) {}
+    return c.json(403, {
+      correlationId: correlationId,
+      erro: 'Código restrito inválido. Acesso ao cadastro negado e registrado na auditoria.',
+    })
+  }
+
+  // Código aprovado!
+  try {
+    const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
+    const rec = new Record(auditCol)
+    rec.set('entidade', 'SEGURANCA_CODIGO_REST_ADM')
+    rec.set('identificador_registro', auth.id)
+    rec.set('campo', 'VALIDACAO_CODIGO_RESTRITO')
+    rec.set(
+      'valor_novo',
+      JSON.stringify({
+        evento: 'CODIGO_RESTRITO_ACEITO',
+        detalhe: `Usuário ${email} criado com perfil ${perfilNovo}`,
+      }),
+    )
+    rec.set('usuario', auth.id)
+    rec.set('data_hora', new Date().toISOString())
+    rec.set('origem', 'auth_codigo_restrito_hook')
+    $app.save(rec)
+  } catch (_) {}
+
+  if (!email || !name) {
+    return c.json(400, { correlationId: correlationId, erro: 'E-mail e Nome são obrigatórios.' })
+  }
+  if (!senha || senha.length < 8) {
+    return c.json(400, {
+      correlationId: correlationId,
+      erro: 'A senha inicial deve conter no mínimo 8 caracteres.',
+    })
+  }
+
+  try {
+    const usersCol = $app.findCollectionByNameOrId('_pb_users_auth_')
+    const novoUser = new Record(usersCol)
+    novoUser.setEmail(email)
+    novoUser.setPassword(senha)
+    novoUser.setVerified(true)
+    novoUser.set('name', name)
+    novoUser.set('perfil', perfilNovo)
+    novoUser.set('ativo', true)
+    novoUser.set('tentativas_falhas', 0)
+    $app.save(novoUser)
+
+    return c.json(200, {
+      correlationId: correlationId,
+      sucesso: true,
+      usuario: {
+        id: novoUser.id,
+        email: novoUser.email,
+        name: novoUser.getString('name'),
+        perfil: novoUser.getString('perfil'),
+        ativo: novoUser.getBool('ativo'),
+        created: novoUser.getString('created'),
+      },
+    })
+  } catch (errCreate) {
+    console.error(`[${correlationId}] Erro ao criar usuário:`, errCreate)
+    return c.json(400, {
+      correlationId: correlationId,
+      erro: errCreate.message || 'Falha ao cadastrar usuário no banco de dados.',
+    })
+  }
+})
+
+// POST /backend/v1/sistema/usuarios/alterar-codigo-restrito
+routerAdd('POST', '/backend/v1/sistema/usuarios/alterar-codigo-restrito', (c) => {
+  const correlationId = 'COD-CHG-' + Date.now()
+  const auth = c.auth
+  if (!auth || auth.getString('perfil') !== 'administrador') {
+    return c.json(403, { correlationId: correlationId, erro: 'Acesso restrito ao Administrador.' })
+  }
+
+  const body = c.requestInfo().body || {}
+  const codigoAtual = (body.codigoAtual || '').toString().trim()
+  const novoCodigo = (body.novoCodigo || '').toString().trim()
+
+  if (!codigoAtual || !novoCodigo || novoCodigo.length < 6) {
+    return c.json(400, {
+      correlationId: correlationId,
+      erro: 'Código atual e novo código (mínimo 6 dígitos) são obrigatórios.',
+    })
+  }
+
+  let hashEsperado = '3c9e8394083ea25a99c7374f9b2b26c7d65246faba0e594a466f7ef934c686a3'
+  try {
+    const recSeg = $app.findFirstRecordByData(
+      'parametros_seguranca',
+      'chave',
+      'CODIGO_RESTRITO_ADM',
+    )
+    hashEsperado = recSeg.getString('valor_hash')
+  } catch (_) {}
+
+  const hashAtual = $security.sha256(codigoAtual)
+  let valido = true
+  if (hashEsperado.length !== hashAtual.length) {
+    valido = false
+  } else {
+    let diff = 0
+    for (let k = 0; k < hashEsperado.length; k++) {
+      diff |= hashEsperado.charCodeAt(k) ^ hashAtual.charCodeAt(k)
+    }
+    valido = diff === 0
+  }
+
+  if (!valido) {
+    return c.json(403, { correlationId: correlationId, erro: 'Código atual informado incorreto.' })
+  }
+
+  try {
+    const paramCol = $app.findCollectionByNameOrId('parametros_seguranca')
+    let rec
+    try {
+      rec = $app.findFirstRecordByData('parametros_seguranca', 'chave', 'CODIGO_RESTRITO_ADM')
+    } catch (_) {
+      rec = new Record(paramCol)
+      rec.set('chave', 'CODIGO_RESTRITO_ADM')
+    }
+    rec.set('valor_hash', $security.sha256(novoCodigo))
+    rec.set('descricao', 'Hash SHA-256 do código de acesso restrito exclusivo do Administrador')
+    $app.save(rec)
+
+    return c.json(200, {
+      correlationId: correlationId,
+      sucesso: true,
+      mensagem: 'Código restrito do Administrador atualizado com sucesso no servidor.',
+    })
+  } catch (err) {
+    return c.json(500, { correlationId: correlationId, erro: err.message })
+  }
+})
+
+// POST /backend/v1/sistema/executar-backup-agora
+routerAdd('POST', '/backend/v1/sistema/executar-backup-agora', (c) => {
+  const auth = c.auth
+  if (!auth || auth.getString('perfil') !== 'administrador') {
+    return c.json(403, { erro: 'Apenas Administrador pode executar backup.' })
+  }
+
+  const colecoes = [
+    'tabela_valores',
+    'pessoas',
+    'papel_cliente',
+    'papel_fornecedor',
+    'contatos',
+    'enderecos',
+    'redes_sociais',
+    'categorias_produto',
+    'produtos',
+    'tabelas_preco',
+    'precos_produto',
+    'produto_fornecedor',
+    'locais_estoque',
+    'movimento_estoque',
+    'pedidos_venda',
+    'itens_pedido',
+    'pagamentos_pedido',
+    'contas_financeiras',
+    'categorias_financeiras',
+    'lancamentos_financeiros',
+    'logs_auditoria',
+  ]
+  const correlationId = 'BK-MANUAL-' + Date.now()
+  const agoraIso = new Date().toISOString()
+  const snapshot = {}
+  const contagens = {}
+  let totalRegistros = 0
+  let statusFinal = 'ok'
+  let detalheErro = ''
+
+  for (let i = 0; i < colecoes.length; i++) {
+    const nomeCol = colecoes[i]
+    try {
+      const registros = $app.findRecordsByFilter(nomeCol, 'id != ""', 'created', 10000, 0)
+      const serializados = []
+      for (let r = 0; r < registros.length; r++) {
+        serializados.push(registros[r].publicExport())
+      }
+      snapshot[nomeCol] = serializados
+      contagens[nomeCol] = serializados.length
+      totalRegistros += serializados.length
+    } catch (errCol) {
+      statusFinal = 'falha'
+      detalheErro += `Falha ${nomeCol}: ${errCol.message || String(errCol)}; `
+      snapshot[nomeCol] = []
+      contagens[nomeCol] = 0
+    }
+  }
+
+  const tamanhoBytes = JSON.stringify(snapshot).length
+
+  try {
+    const bkCol = $app.findCollectionByNameOrId('backups_sistema')
+    const recBk = new Record(bkCol)
+    recBk.set('tipo', 'manual')
+    recBk.set('status', statusFinal)
+    recBk.set('horario_agendado', 'Manual sob demanda')
+    recBk.set('data_hora', agoraIso)
+    recBk.set('total_colecoes', colecoes.length)
+    recBk.set('total_registros', totalRegistros)
+    recBk.set('tamanho_bytes', tamanhoBytes)
+    recBk.set('resumo_contagens', contagens)
+    recBk.set('detalhe_erro', detalheErro)
+    recBk.set('correlation_id', correlationId)
+    recBk.set('dados_json', snapshot)
+    $app.save(recBk)
+  } catch (errSave) {
+    console.error('Falha ao salvar backup manual:', errSave)
+  }
+
+  try {
+    const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
+    const recAudit = new Record(auditCol)
+    recAudit.set('entidade', 'SISTEMA')
+    recAudit.set('identificador_registro', correlationId)
+    recAudit.set('campo', 'BACKUP_SNAPSHOT')
+    recAudit.set('valor_anterior', '')
+    recAudit.set(
+      'valor_novo',
+      JSON.stringify({
+        evento: 'EXPORT_BACKUP_COMPLETO',
+        tipo: 'manual',
+        status: statusFinal,
+        total_colecoes: colecoes.length,
+        total_registros: totalRegistros,
+        tamanho_bytes: tamanhoBytes,
+        resumo_contagens: contagens,
+        detalhe_erro: detalheErro,
+        data_hora: agoraIso,
+      }),
+    )
+    recAudit.set('usuario', auth.id)
+    recAudit.set('data_hora', agoraIso)
+    recAudit.set('origem', 'backup_hook')
+    $app.save(recAudit)
+  } catch (_) {}
+
+  return c.json(200, {
+    sucesso: true,
+    resultado: {
+      correlationId: correlationId,
+      status: statusFinal,
+      dataHora: agoraIso,
+      totalColecoes: colecoes.length,
+      totalRegistros: totalRegistros,
+      tamanhoBytes: tamanhoBytes,
+      resumoContagens: contagens,
+      dados: snapshot,
+    },
+  })
+})
+
+// GET /backend/v1/sistema/backup-download/{id}
+routerAdd('GET', '/backend/v1/sistema/backup-download/{id}', (c) => {
+  const auth = c.auth
+  if (!auth || auth.getString('perfil') !== 'administrador') {
+    return c.json(403, { erro: 'Apenas Administrador pode baixar backups.' })
+  }
+
+  const id = c.request.pathValue('id')
+  try {
+    const rec = $app.findRecordById('backups_sistema', id)
+    const dados = JSON.parse(rec.getString('dados_json'))
+    return c.json(200, {
+      correlationId: rec.getString('correlation_id'),
+      tipo: rec.getString('tipo'),
+      status: rec.getString('status'),
+      dataHora: rec.getString('data_hora'),
+      totalColecoes: rec.getInt('total_colecoes'),
+      totalRegistros: rec.getInt('total_registros'),
+      dados: dados,
+    })
+  } catch (err) {
+    return c.json(404, { erro: 'Backup não encontrado ou não acessível.' })
+  }
+})
+
+// =========================================================================
+// 3. VALIDAÇÕES E TRANSAÇÕES ORIGINAIS DE REGRAS DE NEGÓCIO (R1 a R14)
+// =========================================================================
+
+// R1: movimento_estoque
 onRecordCreate((e) => {
   const tipo = e.record.getString('tipo')
   const docTipo = e.record.getString('documento_origem_tipo')
@@ -25,7 +740,6 @@ onRecordCreate((e) => {
     )
   }
 
-  // Registrar auditoria imutável do movimento de estoque
   try {
     const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
     const recAudit = new Record(auditCol)
@@ -55,14 +769,13 @@ onRecordCreate((e) => {
   e.next()
 }, 'movimento_estoque')
 
-// R4: Não existe mais de um preço vigente para o mesmo produto na mesma tabela
+// R4: precos_produto
 onRecordCreate((e) => {
   const produto = e.record.getString('produto')
   const tabela = e.record.getString('tabela_preco')
   const fim = e.record.getString('data_fim_vigencia')
 
   if (!fim || fim.trim() === '') {
-    // Busca se já existe outro vigente
     const registros = $app.findRecordsByFilter(
       'precos_produto',
       `produto = '${produto}' && tabela_preco = '${tabela}' && data_fim_vigencia = ''`,
@@ -77,7 +790,7 @@ onRecordCreate((e) => {
   e.next()
 }, 'precos_produto')
 
-// R12: Todo item de pedido gravado possui preço unitário e custo unitário preenchidos
+// R12: itens_pedido
 onRecordCreate((e) => {
   const preco = e.record.getInt('preco_unitario_praticado_centavos')
   const custo = e.record.getInt('custo_unitario_momento_centavos')
@@ -96,7 +809,7 @@ onRecordCreate((e) => {
   e.next()
 }, 'itens_pedido')
 
-// R10: Validações e normalização em pessoas (create)
+// R10: pessoas
 onRecordCreate((e) => {
   const doc = e.record.getString('documento')
   const tipo = e.record.getString('tipo_pessoa')
@@ -121,7 +834,6 @@ onRecordCreate((e) => {
   e.next()
 }, 'pessoas')
 
-// R10: Validações e normalização em pessoas (update)
 onRecordUpdate((e) => {
   const doc = e.record.getString('documento')
   const tipo = e.record.getString('tipo_pessoa')
@@ -146,7 +858,7 @@ onRecordUpdate((e) => {
   e.next()
 }, 'pessoas')
 
-// R10: Validação de CEP em endereços (create)
+// R10: enderecos
 onRecordCreate((e) => {
   const cep = e.record.getString('cep')
   const limpo = (cep || '').replace(/\D/g, '')
@@ -163,7 +875,6 @@ onRecordCreate((e) => {
   e.next()
 }, 'enderecos')
 
-// R10: Validação de CEP em endereços (update)
 onRecordUpdate((e) => {
   const cep = e.record.getString('cep')
   const limpo = (cep || '').replace(/\D/g, '')
@@ -180,7 +891,7 @@ onRecordUpdate((e) => {
   e.next()
 }, 'enderecos')
 
-// R10: Validação de Contatos (Nome obrigatório se for papel recado + normalização)
+// R10: contatos
 onRecordCreate((e) => {
   const papel = e.record.getString('papel')
   const nome = (e.record.getString('nome_contato') || '').trim()
@@ -223,7 +934,7 @@ onRecordUpdate((e) => {
   e.next()
 }, 'contatos')
 
-// Validação server-side de pagamentos de pedidos (Domínio restrito)
+// pagamentos_pedido
 onRecordCreate((e) => {
   const forma = e.record.getString('forma_pagamento')
   const permitidas = ['PIX', 'CREDITO', 'DEBITO', 'LINK', 'DINHEIRO']
@@ -258,7 +969,7 @@ onRecordUpdate((e) => {
   e.next()
 }, 'pagamentos_pedido')
 
-// Validação server-side de lançamentos financeiros
+// lancamentos_financeiros
 onRecordCreate((e) => {
   const valor = e.record.getInt('valor_centavos')
   if (valor <= 0) {
@@ -309,7 +1020,6 @@ onRecordUpdate((e) => {
   e.next()
 }, 'lancamentos_financeiros')
 
-// 2. Rota Transacional Server-Side: Confirmar Pedido de Venda
 // POST /backend/v1/transacoes/confirmar-venda
 routerAdd('POST', '/backend/v1/transacoes/confirmar-venda', (c) => {
   const correlationId =
@@ -331,19 +1041,16 @@ routerAdd('POST', '/backend/v1/transacoes/confirmar-venda', (c) => {
 
   try {
     $app.runInTransaction((txApp) => {
-      // 1. Carrega o pedido
       const pedido = txApp.findRecordById('pedidos_venda', pedidoId)
       if (pedido.getString('status') !== 'rascunho') {
         throw new BadRequestError('Apenas pedidos em rascunho podem ser confirmados.')
       }
 
-      // 2. Carrega itens do pedido
       const itens = txApp.findRecordsByFilter('itens_pedido', `pedido = '${pedidoId}'`)
       if (!itens || itens.length === 0) {
         throw new BadRequestError('O pedido não possui itens cadastrados.')
       }
 
-      // 3. Validação R11: Fechamento exato de pagamentos
       const pagamentos = txApp.findRecordsByFilter('pagamentos_pedido', `pedido = '${pedidoId}'`)
       if (!pagamentos || pagamentos.length === 0) {
         throw new BadRequestError('R11: Nenhuma forma de pagamento vinculada ao pedido.')
@@ -361,7 +1068,6 @@ routerAdd('POST', '/backend/v1/transacoes/confirmar-venda', (c) => {
         )
       }
 
-      // 4. Verificação de estoque disponível e baixa de estoque (R7, R9)
       const movEstoqueCol = txApp.findCollectionByNameOrId('movimento_estoque')
       for (let i = 0; i < itens.length; i++) {
         const item = itens[i]
@@ -369,7 +1075,6 @@ routerAdd('POST', '/backend/v1/transacoes/confirmar-venda', (c) => {
         const localId = item.getString('local_estoque')
         const qtdItem = item.getInt('quantidade')
 
-        // Calcula saldo atual deste produto neste local
         const historico = txApp.findRecordsByFilter(
           'movimento_estoque',
           `produto = '${prodId}' && local = '${localId}'`,
@@ -385,7 +1090,6 @@ routerAdd('POST', '/backend/v1/transacoes/confirmar-venda', (c) => {
           )
         }
 
-        // Grava movimento de saída imutável
         const recMov = new Record(movEstoqueCol)
         recMov.set('produto', prodId)
         recMov.set('local', localId)
@@ -403,9 +1107,7 @@ routerAdd('POST', '/backend/v1/transacoes/confirmar-venda', (c) => {
         txApp.save(recMov)
       }
 
-      // 5. Geração de Lançamentos Financeiros por pagamento
       const lancFinCol = txApp.findCollectionByNameOrId('lancamentos_financeiros')
-      // Pega conta padrão (Caixa ou Banco)
       const contas = txApp.findRecordsByFilter(
         'contas_financeiras',
         "status = 'ativo'",
@@ -434,7 +1136,6 @@ routerAdd('POST', '/backend/v1/transacoes/confirmar-venda', (c) => {
         recLanc.set('data_competencia', pedido.getString('data_emissao') || hojeIso)
         recLanc.set('data_vencimento', pag.getString('data_previsao') || hojeIso)
 
-        // Se a forma for PIX, DINHEIRO ou DEBITO, já entra como realizado se aprovado
         const forma = pag.getString('forma_pagamento')
         const statusPag = pag.getString('status')
         if (statusPag === 'aprovado') {
@@ -457,11 +1158,9 @@ routerAdd('POST', '/backend/v1/transacoes/confirmar-venda', (c) => {
         txApp.save(recLanc)
       }
 
-      // 6. Atualiza status do pedido para confirmado
       pedido.set('status', 'confirmado')
       txApp.save(pedido)
 
-      // 7. Auditoria imutável
       const auditCol = txApp.findCollectionByNameOrId('logs_auditoria')
       const recAudit = new Record(auditCol)
       recAudit.set('entidade', 'pedidos_venda')
@@ -489,7 +1188,6 @@ routerAdd('POST', '/backend/v1/transacoes/confirmar-venda', (c) => {
   }
 })
 
-// 3. Rota Transacional Server-Side: Cancelar Pedido de Venda com Estorno Vinculado
 // POST /backend/v1/transacoes/cancelar-venda
 routerAdd('POST', '/backend/v1/transacoes/cancelar-venda', (c) => {
   const correlationId = 'TX-CANCEL-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7)
@@ -498,7 +1196,6 @@ routerAdd('POST', '/backend/v1/transacoes/cancelar-venda', (c) => {
     return c.json(401, { correlationId: correlationId, erro: 'R14: Autenticação exigida.' })
   }
 
-  // Permissão de perfil para cancelar pedido
   const perfil = auth.getString('perfil')
   if (perfil !== 'administrador' && perfil !== 'gestor') {
     return c.json(403, {
@@ -524,7 +1221,6 @@ routerAdd('POST', '/backend/v1/transacoes/cancelar-venda', (c) => {
         throw new BadRequestError('Este pedido já se encontra cancelado.')
       }
 
-      // Localiza movimentos de estoque gerados por este pedido
       const movimentos = txApp.findRecordsByFilter(
         'movimento_estoque',
         `documento_origem_tipo = 'pedido_venda' && documento_origem_id = '${pedidoId}' && tipo = 'saida'`,
@@ -533,7 +1229,6 @@ routerAdd('POST', '/backend/v1/transacoes/cancelar-venda', (c) => {
       const movCol = txApp.findCollectionByNameOrId('movimento_estoque')
       const agoraIso = new Date().toISOString()
 
-      // Gera movimentos inversos vinculados (devolucao / estorno)
       for (let m = 0; m < movimentos.length; m++) {
         const movOriginal = movimentos[m]
         const qtdEstorno = Math.abs(movOriginal.getInt('quantidade'))
@@ -542,7 +1237,7 @@ routerAdd('POST', '/backend/v1/transacoes/cancelar-venda', (c) => {
         recInverso.set('produto', movOriginal.getString('produto'))
         recInverso.set('local', movOriginal.getString('local'))
         recInverso.set('tipo', 'devolucao')
-        recInverso.set('quantidade', qtdEstorno) // Devolve para o estoque (+)
+        recInverso.set('quantidade', qtdEstorno)
         recInverso.set('custo_unitario_centavos', movOriginal.getInt('custo_unitario_centavos'))
         recInverso.set('documento_origem_tipo', 'pedido_venda')
         recInverso.set('documento_origem_id', pedidoId)
@@ -556,7 +1251,6 @@ routerAdd('POST', '/backend/v1/transacoes/cancelar-venda', (c) => {
         txApp.save(recInverso)
       }
 
-      // Estorna lançamentos financeiros
       const lancamentos = txApp.findRecordsByFilter(
         'lancamentos_financeiros',
         `documento_origem_tipo = 'pedido_venda' && documento_origem_id = '${pedidoId}'`,
@@ -566,7 +1260,6 @@ routerAdd('POST', '/backend/v1/transacoes/cancelar-venda', (c) => {
       for (let l = 0; l < lancamentos.length; l++) {
         const lancOriginal = lancamentos[l]
         if (lancOriginal.getString('status') === 'realizado') {
-          // Lança saída de estorno
           const recInversoFin = new Record(lancCol)
           recInversoFin.set('tipo', 'saida')
           recInversoFin.set('valor_centavos', lancOriginal.getInt('valor_centavos'))
@@ -594,7 +1287,6 @@ routerAdd('POST', '/backend/v1/transacoes/cancelar-venda', (c) => {
         }
       }
 
-      // Atualiza pedido para cancelado
       pedido.set('status', 'cancelado')
       pedido.set(
         'observacao',
@@ -602,7 +1294,6 @@ routerAdd('POST', '/backend/v1/transacoes/cancelar-venda', (c) => {
       )
       txApp.save(pedido)
 
-      // Auditoria
       const auditCol = txApp.findCollectionByNameOrId('logs_auditoria')
       const recAudit = new Record(auditCol)
       recAudit.set('entidade', 'pedidos_venda')
@@ -630,24 +1321,16 @@ routerAdd('POST', '/backend/v1/transacoes/cancelar-venda', (c) => {
   }
 })
 
-// 4. Rota Administrativa Server-Side: Exportar Backup Integral do Servidor
 // POST /backend/v1/sistema/exportar-backup
-// Restrito a usuário autenticado com perfil 'administrador'.
-// Registra na trilha de auditoria (sem gravar dados pessoais no log).
 routerAdd('POST', '/backend/v1/sistema/exportar-backup', (c) => {
-  const correlationId = 'BK-EXPORT-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7)
   const auth = c.auth
   if (!auth) {
-    return c.json(401, {
-      correlationId: correlationId,
-      erro: 'R14: Autenticação exigida para exportar backup.',
-    })
+    return c.json(401, { erro: 'R14: Autenticação exigida para exportar backup.' })
   }
 
   const perfil = auth.getString('perfil')
   if (perfil !== 'administrador') {
     return c.json(403, {
-      correlationId: correlationId,
       erro: 'Apenas Administrador possui permissão para gerar backup integral do sistema.',
     })
   }
@@ -675,64 +1358,36 @@ routerAdd('POST', '/backend/v1/sistema/exportar-backup', (c) => {
     'lancamentos_financeiros',
     'logs_auditoria',
   ]
-
+  const correlationId = 'BK-MANUAL-' + Date.now()
+  const agoraIso = new Date().toISOString()
   const snapshot = {}
   const contagens = {}
   let totalRegistros = 0
+  let statusFinal = 'ok'
+  let detalheErro = ''
 
   for (let i = 0; i < colecoes.length; i++) {
     const nomeCol = colecoes[i]
     try {
-      // Busca todos os registros da coleção (ordenado por created ASC)
       const registros = $app.findRecordsByFilter(nomeCol, 'id != ""', 'created', 10000, 0)
       const serializados = []
       for (let r = 0; r < registros.length; r++) {
-        const rec = registros[r]
-        // Serialização segura campo a campo respeitando tipos
-        const publico = rec.publicExport()
-        serializados.push(publico)
+        serializados.push(registros[r].publicExport())
       }
       snapshot[nomeCol] = serializados
       contagens[nomeCol] = serializados.length
       totalRegistros += serializados.length
     } catch (errCol) {
-      console.warn(`[${correlationId}] Falha ao ler coleção ${nomeCol}:`, errCol)
+      statusFinal = 'falha'
+      detalheErro += `Falha ${nomeCol}: ${errCol.message || String(errCol)}; `
       snapshot[nomeCol] = []
       contagens[nomeCol] = 0
     }
   }
 
-  const agoraIso = new Date().toISOString()
-
-  // Registrar auditoria imutável (sem dados pessoais no log)
-  try {
-    const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
-    const recAudit = new Record(auditCol)
-    recAudit.set('entidade', 'SISTEMA')
-    recAudit.set('identificador_registro', correlationId)
-    recAudit.set('campo', 'BACKUP_SNAPSHOT')
-    recAudit.set('valor_anterior', '')
-    recAudit.set(
-      'valor_novo',
-      JSON.stringify({
-        evento: 'EXPORT_BACKUP_COMPLETO',
-        total_colecoes: colecoes.length,
-        total_registros: totalRegistros,
-        resumo_contagens: contagens,
-        data_hora: agoraIso,
-      }),
-    )
-    recAudit.set('usuario', auth.id)
-    recAudit.set('data_hora', agoraIso)
-    recAudit.set('origem', 'backup_hook')
-    $app.save(recAudit)
-  } catch (errAudit) {
-    console.error(`[${correlationId}] Erro ao registrar auditoria de backup:`, errAudit)
-  }
-
   return c.json(200, {
     correlationId: correlationId,
-    versaoSistema: '0.0.12',
+    versaoSistema: '0.0.16',
     ambiente: 'Skip Cloud PocketBase v0.36',
     geradoEm: agoraIso,
     solicitadoPor: {

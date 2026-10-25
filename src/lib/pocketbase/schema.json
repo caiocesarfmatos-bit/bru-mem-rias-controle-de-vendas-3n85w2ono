@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-25T20:59:07.008Z",
+  "generatedAt": "2026-10-25T21:28:30.855Z",
   "collections": [
     {
       "name": "users",
@@ -1696,6 +1696,151 @@
         "CREATE INDEX idx_logs_audit_ent_id ON logs_auditoria (entidade, identificador_registro)",
         "CREATE INDEX idx_logs_audit_data ON logs_auditoria (data_hora DESC)"
       ]
+    },
+    {
+      "name": "backups_sistema",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && @request.auth.perfil = 'administrador'",
+        "view": "@request.auth.id != '' && @request.auth.perfil = 'administrador'",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["automatico", "manual"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["ok", "falha"]
+        },
+        {
+          "name": "horario_agendado",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_hora",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "total_colecoes",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_registros",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tamanho_bytes",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "resumo_contagens",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "detalhe_erro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "correlation_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dados_json",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_bk_created ON backups_sistema (created DESC)",
+        "CREATE INDEX idx_bk_status ON backups_sistema (status)"
+      ]
+    },
+    {
+      "name": "parametros_seguranca",
+      "type": "base",
+      "apiRules": {
+        "list": null,
+        "view": null,
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "chave",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "valor_hash",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_param_seg_chave ON parametros_seguranca (chave)"]
     }
   ]
 }

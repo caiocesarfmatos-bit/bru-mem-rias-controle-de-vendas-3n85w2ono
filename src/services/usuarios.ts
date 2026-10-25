@@ -22,29 +22,43 @@ export async function listarUsuarios(): Promise<UsuarioSistema[]> {
   }
 }
 
-export async function criarUsuarioConvite(dados: {
+export async function criarUsuarioComCodigoRestrito(dados: {
   email: string
   name: string
   perfil: PerfilUsuario
   passwordInicial: string
+  codigoRestrito: string
 }): Promise<UsuarioSistema> {
-  const rec = await pb.collection('users').create({
-    email: dados.email.trim(),
-    name: dados.name.trim(),
-    perfil: dados.perfil,
-    password: dados.passwordInicial,
-    passwordConfirm: dados.passwordInicial,
-    ativo: true,
-    tentativas_falhas: 0,
+  // A validação do código restrito e criação de conta ocorre 100% no servidor (PocketBase pb_hook)
+  // com hash SHA-256 e comparação em tempo constante.
+  const res = await pb.send('/backend/v1/sistema/usuarios/criar-com-codigo', {
+    method: 'POST',
+    body: {
+      email: dados.email,
+      name: dados.name,
+      perfil: dados.perfil,
+      senha: dados.passwordInicial,
+      codigoRestrito: dados.codigoRestrito,
+    },
   })
 
-  return {
-    id: rec.id,
-    email: rec.email,
-    name: rec.name,
-    perfil: rec.perfil,
-    ativo: true,
-    created: rec.created,
-    updated: rec.updated,
+  if (!res || !res.sucesso) {
+    throw new Error(res?.erro || 'Falha ao cadastrar usuário com código restrito.')
   }
+
+  return res.usuario
+}
+
+export async function alterarCodigoRestritoServidor(dados: {
+  codigoAtual: string
+  novoCodigo: string
+}): Promise<{ sucesso: boolean; mensagem?: string }> {
+  const res = await pb.send('/backend/v1/sistema/usuarios/alterar-codigo-restrito', {
+    method: 'POST',
+    body: {
+      codigoAtual: dados.codigoAtual,
+      novoCodigo: dados.novoCodigo,
+    },
+  })
+  return res
 }

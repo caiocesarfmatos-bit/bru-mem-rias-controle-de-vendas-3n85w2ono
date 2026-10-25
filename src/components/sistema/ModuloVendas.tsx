@@ -34,7 +34,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { ShoppingCart, Plus, CheckCircle2, XCircle, AlertCircle, FileText } from 'lucide-react'
+import {
+  ShoppingCart,
+  Plus,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  FileText,
+  Truck,
+} from 'lucide-react'
 import { ModalComprovantePedido, ComprovantePedidoDados } from '@/components/ModalComprovantePedido'
 
 export const ModuloVendas: React.FC = () => {
@@ -57,6 +65,19 @@ export const ModuloVendas: React.FC = () => {
   const [valorPag1Reais, setValorPag1Reais] = useState('')
   const [observacao, setObservacao] = useState('')
   const [erroForm, setErroForm] = useState<string | null>(null)
+
+  // Integração de Frete Automático no Pedido
+  const [cepEntrega, setCepEntrega] = useState('')
+  const [cidadeDestino, setCidadeDestino] = useState('Rio de Janeiro')
+  const [ufDestino, setUfDestino] = useState('RJ')
+  const [consultandoCepFrete, setConsultandoCepFrete] = useState(false)
+  const [opcoesFrete, setOpcoesFrete] = useState<any[]>([])
+  const [opcaoFreteSelecionada, setOpcaoFreteSelecionada] = useState<string>('SEM_FRETE')
+  const [valorFreteCentavos, setValorFreteCentavos] = useState<number>(0)
+  const [freteManualAtivo, setFreteManualAtivo] = useState(false)
+  const [valorFreteManualReais, setValorFreteManualReais] = useState('')
+  const [justificativaFreteManual, setJustificativaFreteManual] = useState('')
+  const [avisoFrete, setAvisoFrete] = useState<string | null>(null)
 
   const carregarDados = async () => {
     setLoading(true)
@@ -95,13 +116,61 @@ export const ModuloVendas: React.FC = () => {
     }
   }, [produtoId, produtos])
 
-  // Atualiza valor de pagamento sugerido conforme quantidade * preco
+  // Recalcular opções de frete quando destino ou quantidade mudarem
+  const dispararCalculoFrete = async (ufAlvo: string, cidAlvo?: string, qtdItens?: number) => {
+    try {
+      const { calcularOpcoesFrete } = await import('@/services/frete')
+      const qtd = qtdItens ?? (parseInt(quantidade, 10) || 1)
+      const res = await calcularOpcoesFrete({
+        uf: ufAlvo,
+        cidade: cidAlvo,
+        quantidadeItens: qtd,
+      })
+      setOpcoesFrete(res.opcoes)
+      if (res.opcoes.length > 0) {
+        // Seleciona a primeira opção mais econômica por padrão
+        const primeira = res.opcoes[0]
+        setOpcaoFreteSelecionada(primeira.faixa_id || primeira.nome)
+        setValorFreteCentavos(primeira.preco_centavos)
+        setFreteManualAtivo(false)
+        setAvisoFrete(null)
+      } else {
+        setOpcaoFreteSelecionada('MANUAL')
+        setFreteManualAtivo(true)
+        setAvisoFrete(
+          'Nenhuma faixa tarifária cobre o destino informado. Informe o frete manual com justificativa.',
+        )
+      }
+    } catch {
+      /* Cálculo silencioso */
+    }
+  }
+
+  // Preenche dados do cliente ao selecionar
+  useEffect(() => {
+    const c = clientes.find((item) => item.id === clienteId)
+    if (c) {
+      const end = c.enderecos?.[0]
+      if (end?.cep) {
+        setCepEntrega(end.cep)
+        setCidadeDestino(end.cidade || 'Rio de Janeiro')
+        setUfDestino(end.uf || 'RJ')
+        dispararCalculoFrete(end.uf || 'RJ', end.cidade, parseInt(quantidade, 10) || 1)
+      }
+    }
+  }, [clienteId])
+
+  // Atualiza valor de pagamento sugerido conforme quantidade * preco + frete
   useEffect(() => {
     const qtd = parseInt(quantidade, 10) || 0
     const precoCent = parseRealParaCentavos(precoUnitarioReais)
-    const tot = qtd * precoCent
+    const subtotal = qtd * precoCent
+    const frete = freteManualAtivo
+      ? parseRealParaCentavos(valorFreteManualReais)
+      : valorFreteCentavos
+    const tot = subtotal + frete
     setValorPag1Reais((tot / 100).toFixed(2).replace('.', ','))
-  }, [quantidade, precoUnitarioReais])
+  }, [quantidade, precoUnitarioReais, valorFreteCentavos, freteManualAtivo, valorFreteManualReais])
 
   const handleCriarPedido = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -110,7 +179,33 @@ export const ModuloVendas: React.FC = () => {
       const qtd = parseInt(quantidade, 10)
       const precoCent = parseRealParaCentavos(precoUnitarioReais)
       const valorPagCent = parseRealParaCentavos(valorPag1Reais)
-      const prod = produtos.find((p) => p.id === produtoId)
+      const freteEfetivoCentavos = freteManualAtivo
+        ? parseRealParaCentavos(valorFreteManualReais)
+        : valorFreteCentavos
+
+      // Se manual, exige justificativa
+      if (freteManualAtivo && freteEfetivoCentavos > 0 && !justificativaFreteManual.trim()) {
+        setErroForm('Justificativa obrigatória para frete manual ou exceção tarifária.')
+        return
+      }
+
+      // Constrói snapshot estático
+      const optAtual = opcoesFrete.find((o) => (o.faixa_id || o.nome) === opcaoFreteSelecionada)
+      const snapshotFrete = {
+        faixa_id: optAtual?.faixa_id,
+        nome_opcao:
+          optAtual?.nome || (freteManualAtivo ? 'Frete Manual (Exceção)' : 'Retirada / Sem frete'),
+        modalidade: optAtual?.modalidade || 'TRANSPORTADORA',
+        preco_centavos: freteEfetivoCentavos,
+        prazo_dias_estimado: optAtual?.prazo_dias_estimado || 0,
+        cep_destino: cepEntrega,
+        regiao_destino: ufDestino,
+        uf_destino: ufDestino,
+        cidade_destino: cidadeDestino,
+        is_excecao_manual: freteManualAtivo,
+        justificativa_excecao: freteManualAtivo ? justificativaFreteManual.trim() : undefined,
+        calculado_em: new Date().toISOString(),
+      }
 
       await criarPedidoCompleto({
         clienteId,
@@ -130,6 +225,8 @@ export const ModuloVendas: React.FC = () => {
             status: 'aprovado',
           },
         ],
+        acrescimoCentavos: freteEfetivoCentavos,
+        snapshotFrete,
         observacao,
         confirmarImediatamente: true,
       })
@@ -267,6 +364,172 @@ export const ModuloVendas: React.FC = () => {
                 </div>
               </div>
 
+              {/* Bloco de Frete e Destino (ViaCEP + Tabela Própria) */}
+              <div className="p-3.5 bg-gray-50 border border-[#F0E4E0] rounded-md space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-[#FF1493] flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5" />
+                    Cálculo Automático de Frete (ViaCEP + Tabela Própria)
+                  </span>
+                  {consultandoCepFrete && (
+                    <span className="text-xs text-[#FF1493] animate-pulse">Buscando CEP...</span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div>
+                    <Label className="text-xs">CEP Destino (8 dígitos)</Label>
+                    <Input
+                      value={cepEntrega}
+                      onChange={async (e) => {
+                        const val = e.target.value
+                        setCepEntrega(val)
+                        const limpo = val.replace(/\D/g, '')
+                        if (limpo.length === 8) {
+                          setConsultandoCepFrete(true)
+                          try {
+                            const { consultarCep } = await import('@/services/viaCep')
+                            const res = await consultarCep(limpo)
+                            setCidadeDestino(res.cidade)
+                            setUfDestino(res.uf)
+                            await dispararCalculoFrete(
+                              res.uf,
+                              res.cidade,
+                              parseInt(quantidade, 10) || 1,
+                            )
+                          } catch (err: any) {
+                            setAvisoFrete(err.message || 'Erro ao consultar CEP.')
+                          } finally {
+                            setConsultandoCepFrete(false)
+                          }
+                        }
+                      }}
+                      placeholder="22790-700"
+                      maxLength={9}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Cidade Destino</Label>
+                    <Input
+                      value={cidadeDestino}
+                      onChange={(e) => setCidadeDestino(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">UF</Label>
+                    <Input
+                      value={ufDestino}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase()
+                        setUfDestino(val)
+                        if (val.length === 2) {
+                          dispararCalculoFrete(val, cidadeDestino, parseInt(quantidade, 10) || 1)
+                        }
+                      }}
+                      maxLength={2}
+                    />
+                  </div>
+                </div>
+
+                {/* Opções Sugeridas pela Tabela */}
+                {opcoesFrete.length > 0 && (
+                  <div className="space-y-1.5 pt-1 border-t border-gray-200">
+                    <Label className="text-xs font-semibold text-[#4E342E]">
+                      Modalidades Disponíveis para o Destino:
+                    </Label>
+                    <div className="space-y-1">
+                      {opcoesFrete.map((opt) => {
+                        const key = opt.faixa_id || opt.nome
+                        const isSel = opcaoFreteSelecionada === key && !freteManualAtivo
+                        return (
+                          <div
+                            key={key}
+                            onClick={() => {
+                              setOpcaoFreteSelecionada(key)
+                              setValorFreteCentavos(opt.preco_centavos)
+                              setFreteManualAtivo(false)
+                            }}
+                            className={`p-2 rounded border cursor-pointer flex items-center justify-between text-xs transition-colors ${
+                              isSel
+                                ? 'bg-pink-50 border-[#FF1493] text-[#4E342E] font-medium'
+                                : 'bg-white border-gray-200 hover:bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="radio"
+                                checked={isSel}
+                                onChange={() => {}}
+                                className="text-[#FF1493]"
+                              />
+                              <span>{opt.nome}</span>
+                              <span className="text-[11px] text-gray-500">
+                                ({opt.prazo_dias_estimado}d úteis)
+                              </span>
+                            </div>
+                            <span className="font-bold">
+                              {opt.preco_centavos === 0
+                                ? 'Grátis'
+                                : formatarCentavosParaReal(opt.preco_centavos)}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Opção Manual / Exceção com Justificativa */}
+                <div className="pt-1 border-t border-gray-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 text-xs cursor-pointer font-medium text-[#4E342E]">
+                      <input
+                        type="checkbox"
+                        checked={freteManualAtivo}
+                        onChange={(e) => {
+                          const ativo = e.target.checked
+                          setFreteManualAtivo(ativo)
+                          if (!ativo && opcoesFrete.length > 0) {
+                            const primeira = opcoesFrete[0]
+                            setOpcaoFreteSelecionada(primeira.faixa_id || primeira.nome)
+                            setValorFreteCentavos(primeira.preco_centavos)
+                          }
+                        }}
+                        className="text-[#FF1493] rounded"
+                      />
+                      Informar Frete Manual / Exceção Tarifária
+                    </label>
+                  </div>
+
+                  {freteManualAtivo && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 bg-amber-50/70 border border-amber-200 rounded">
+                      <div>
+                        <Label className="text-[11px]">Valor do Frete Manual (R$)</Label>
+                        <Input
+                          value={valorFreteManualReais}
+                          onChange={(e) => setValorFreteManualReais(e.target.value)}
+                          placeholder="0,00"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[11px]">Justificativa Obrigatória</Label>
+                        <Input
+                          value={justificativaFreteManual}
+                          onChange={(e) => setJustificativaFreteManual(e.target.value)}
+                          placeholder="Ex: Entrega expressa atípica acordada com cliente"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {avisoFrete && (
+                    <p className="text-xs text-amber-800 bg-amber-50 p-2 rounded border border-amber-200">
+                      {avisoFrete}
+                    </p>
+                  )}
+                </div>
+              </div>
+
               {/* Seção Fechamento de Pagamento R11 */}
               <div className="p-4 bg-[#FFF0F5]/50 border border-[#F0E4E0] rounded-md space-y-3">
                 <div className="flex justify-between items-center">
@@ -276,7 +539,10 @@ export const ModuloVendas: React.FC = () => {
                   <span className="text-xs font-mono font-bold text-[#4E342E]">
                     Total Esperado:{' '}
                     {formatarCentavosParaReal(
-                      (parseInt(quantidade, 10) || 0) * parseRealParaCentavos(precoUnitarioReais),
+                      (parseInt(quantidade, 10) || 0) * parseRealParaCentavos(precoUnitarioReais) +
+                        (freteManualAtivo
+                          ? parseRealParaCentavos(valorFreteManualReais)
+                          : valorFreteCentavos),
                     )}
                   </span>
                 </div>

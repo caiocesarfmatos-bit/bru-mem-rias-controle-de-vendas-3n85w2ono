@@ -101,6 +101,7 @@ export async function criarPedidoCompleto(dados: {
   }>
   descontoGeralCentavos?: number
   acrescimoCentavos?: number
+  snapshotFrete?: any
   observacao?: string
   confirmarImediatamente?: boolean
 }): Promise<{ pedidoId: string; numeroSequencial: number; status: string }> {
@@ -143,6 +144,14 @@ export async function criarPedidoCompleto(dados: {
   const userId = pb.authStore.model?.id || ''
   const hojeIso = new Date().toISOString()
 
+  // Monta snapshot de frete na observação oficial se informado
+  let obsFinal = dados.observacao ? dados.observacao.trim() : ''
+  if (dados.snapshotFrete) {
+    const s = dados.snapshotFrete
+    const tagFrete = `[FRETE: ${s.nome_opcao || s.modalidade} | R$ ${((s.preco_centavos || 0) / 100).toFixed(2)} | CEP: ${s.cep_destino || '-'} | Prazo: ${s.prazo_dias_estimado || 0}d${s.is_excecao_manual ? ` | EXCEÇÃO MANUAL: ${s.justificativa_excecao || 'Justificado'}` : ''}]`
+    obsFinal = obsFinal ? `${obsFinal} • ${tagFrete}` : tagFrete
+  }
+
   // 1. Criar cabeçalho do pedido (inicialmente rascunho)
   const pedidoRec = await pb.collection('pedidos_venda').create({
     numero_sequencial: proximoSeq,
@@ -154,7 +163,7 @@ export async function criarPedidoCompleto(dados: {
     desconto_centavos: Math.round(descontoGeral),
     acrescimo_centavos: Math.round(acrescimo),
     total_centavos: Math.round(total),
-    observacao: dados.observacao ? dados.observacao.trim() : '',
+    observacao: obsFinal,
     usuario: userId,
   })
 

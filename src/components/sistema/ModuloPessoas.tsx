@@ -43,6 +43,10 @@ export const ModuloPessoas: React.FC = () => {
   const [logradouro, setLogradouro] = useState('')
   const [numero, setNumero] = useState('')
   const [bairro, setBairro] = useState('')
+  const [cidade, setCidade] = useState('')
+  const [uf, setUf] = useState('')
+  const [buscandoCep, setBuscandoCep] = useState(false)
+  const [avisoCep, setAvisoCep] = useState<string | null>(null)
   const [formaPref, setFormaPref] = useState('PIX')
   const [erroForm, setErroForm] = useState<string | null>(null)
 
@@ -78,6 +82,8 @@ export const ModuloPessoas: React.FC = () => {
         endereco_logradouro: logradouro,
         endereco_numero: numero,
         endereco_bairro: bairro,
+        endereco_cidade: cidade,
+        endereco_uf: uf,
       })
       setModalAberto(false)
       // Limpa campos
@@ -88,6 +94,11 @@ export const ModuloPessoas: React.FC = () => {
       setContatoEmail('')
       setCep('')
       setLogradouro('')
+      setNumero('')
+      setBairro('')
+      setCidade('')
+      setUf('')
+      setAvisoCep(null)
       carregarDados()
     } catch (err: any) {
       setErroForm(err.message || 'Erro ao cadastrar pessoa')
@@ -249,20 +260,52 @@ export const ModuloPessoas: React.FC = () => {
                 </div>
               </div>
 
-              {/* Endereço */}
+              {/* Endereço com Busca Automática ViaCEP */}
               <div className="space-y-3 pt-2 border-t border-[#F0E4E0]">
-                <h4 className="text-sm font-semibold flex items-center gap-2 text-[#4E342E]">
-                  <MapPin className="w-4 h-4 text-[#FF1493]" />
-                  Endereço Principal
-                </h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold flex items-center gap-2 text-[#4E342E]">
+                    <MapPin className="w-4 h-4 text-[#FF1493]" />
+                    Endereço Principal
+                  </h4>
+                  {buscandoCep && (
+                    <span className="text-xs text-[#FF1493] animate-pulse">
+                      Consultando ViaCEP...
+                    </span>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                   <div>
-                    <Label className="text-xs">CEP</Label>
-                    <Input
-                      value={cep}
-                      onChange={(e) => setCep(e.target.value)}
-                      placeholder="22790700"
-                    />
+                    <Label className="text-xs">CEP (8 dígitos)</Label>
+                    <div className="flex gap-1.5">
+                      <Input
+                        value={cep}
+                        onChange={async (e) => {
+                          const val = e.target.value
+                          setCep(val)
+                          setAvisoCep(null)
+                          const limpo = val.replace(/\D/g, '')
+                          if (limpo.length === 8) {
+                            setBuscandoCep(true)
+                            try {
+                              const { consultarCep } = await import('@/services/viaCep')
+                              const res = await consultarCep(limpo)
+                              setLogradouro(res.logradouro || '')
+                              setBairro(res.bairro || '')
+                              setCidade(res.cidade || '')
+                              setUf(res.uf || '')
+                              setAvisoCep(`Encontrado: ${res.cidade}/${res.uf}`)
+                            } catch (errCep: any) {
+                              setAvisoCep(errCep.message || 'CEP não localizado.')
+                            } finally {
+                              setBuscandoCep(false)
+                            }
+                          }
+                        }}
+                        placeholder="22790700"
+                        maxLength={9}
+                      />
+                    </div>
                   </div>
                   <div className="sm:col-span-2">
                     <Label className="text-xs">Logradouro</Label>
@@ -281,6 +324,36 @@ export const ModuloPessoas: React.FC = () => {
                     />
                   </div>
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs">Bairro</Label>
+                    <Input
+                      value={bairro}
+                      onChange={(e) => setBairro(e.target.value)}
+                      placeholder="Bairro"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Cidade</Label>
+                    <Input
+                      value={cidade}
+                      onChange={(e) => setCidade(e.target.value)}
+                      placeholder="Rio de Janeiro"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">UF</Label>
+                    <Input
+                      value={uf}
+                      onChange={(e) => setUf(e.target.value.toUpperCase())}
+                      placeholder="RJ"
+                      maxLength={2}
+                    />
+                  </div>
+                </div>
+
+                {avisoCep && <p className="text-xs text-[#FF1493] italic">{avisoCep}</p>}
               </div>
 
               <div className="pt-4 flex justify-end gap-2">

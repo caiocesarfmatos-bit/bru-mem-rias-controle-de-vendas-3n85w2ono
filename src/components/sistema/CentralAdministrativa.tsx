@@ -7,6 +7,7 @@ import { ModuloFinanceiro } from './ModuloFinanceiro'
 import { ModuloRelatorios } from './ModuloRelatorios'
 import { ModuloUsuarios } from './ModuloUsuarios'
 import { SecaoCentroBackup } from './SecaoCentroBackup'
+import { SecaoFaixasFrete } from './SecaoFaixasFrete'
 import {
   ShoppingCart,
   Users,
@@ -16,6 +17,7 @@ import {
   Shield,
   LogOut,
   Archive,
+  Truck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BrandLogo } from '@/components/BrandLogo'
@@ -23,6 +25,7 @@ type ModuloId =
   | 'vendas'
   | 'pessoas'
   | 'estoque'
+  | 'frete'
   | 'financeiro'
   | 'relatorios'
   | 'usuarios'
@@ -40,6 +43,8 @@ export const CentralAdministrativa: React.FC = () => {
         return <ModuloPessoas />
       case 'estoque':
         return <ModuloCatalogoEstoque />
+      case 'frete':
+        return <SecaoFaixasFrete />
       case 'financeiro':
         return <ModuloFinanceiro />
       case 'relatorios':
@@ -122,6 +127,18 @@ export const CentralAdministrativa: React.FC = () => {
             >
               <Package className="w-3.5 h-3.5" />
               Catálogo & Estoque
+            </button>
+
+            <button
+              onClick={() => setModuloAtivo('frete')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
+                moduloAtivo === 'frete'
+                  ? 'bg-[#FF1493] text-white shadow-sm'
+                  : 'text-[#4E342E]/80 hover:bg-white hover:text-[#4E342E]'
+              }`}
+            >
+              <Truck className="w-3.5 h-3.5" />
+              Tabela de Frete
             </button>
 
             <button

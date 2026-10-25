@@ -44,3 +44,31 @@
 - **Persistência e Histórico:** Cada execução gera um snapshot integral gravado na coleção `backups_sistema` com data/hora, status (`ok` ou `falha`), contagens por coleção e tamanho em bytes.
 - **Auditoria:** Toda execução (automática ou manual) é registrada de forma imutável na coleção `logs_auditoria`. Em caso de erro, a falha é registrada com detalhes e nunca é silenciada.
 - **Disponibilidade:** Na Central Administrativa (aba "Centro de Backup"), o Administrador visualiza o histórico de todas as execuções e pode baixar o arquivo JSON de qualquer snapshot salvo com 1 clique.
+
+## 4. Integração e Cálculo Automático de Frete (Decisão e Exclusões)
+
+### 4.1 Modelo Adotado: Consulta Pública de CEP + Tabela Própria de Frete
+
+O ateliê Bru Memórias Personalizados está sediado no **Rio de Janeiro (Recreio dos Bandeirantes)** e produz exclusivamente ímãs personalizados (5x5 cm). O fluxo de cálculo opera de maneira híbrida e resiliente:
+
+1. **Consulta Pública de CEP (ViaCEP)**:
+   - Endpoint HTTPS gratuito `https://viacep.com.br/ws/{cep}/json/` sem necessidade de credenciais ou token de terceiros.
+   - Normalização automática para 8 dígitos numéricos (Regra R10).
+   - Cache de dois níveis (em memória e no `localStorage`) para acelerar consultas e minimizar requisições à API pública.
+   - Preenchimento automático de logradouro, bairro, cidade e UF em cadastros de pessoas (clientes e fornecedores).
+   - Identificação automática da macrorregião geográfica brasileira (RJ Capital, RJ Interior, Sudeste, Sul, Centro-Oeste, Nordeste, Norte).
+2. **Tabela Própria de Frete (`faixas_frete`)**:
+   - Coleção dedicada gerenciada no servidor Skip Cloud pelos papéis Administrador e Gestor.
+   - Tarifação configurada por região/UF, modalidade de envio (Retirada no Ateliê, Motoboy Local RJ, PAC, Sedex, Transportadora) e tipo de faixa (peso em gramas, valor do pedido em centavos ou quantidade de itens).
+   - Sugestão automática ao vendedor durante a criação de pedidos e orçamentos.
+   - Tratamento de exceção: caso nenhuma faixa tarifária atenda a localidade, o sistema permite o lançamento manual de frete acompanhado de **justificativa obrigatória** auditada.
+3. **Imutabilidade e Snapshot**:
+   - O frete selecionado no momento da venda é congelado de forma estática (snapshot) no registro do pedido. Alterações posteriores na tabela de frete não afetam vendas passadas.
+   - Criação, edição e exclusão de faixas de frete são registradas na trilha de auditoria do sistema.
+
+### 4.2 Exclusão Consciente: Integração Direta com APIs Oficiais dos Correios / Gateways Terceiros
+
+- **Decisão:** O sistema **NÃO** depende de contrato comercial ou integração síncrona com as APIs restritas dos Correios (SIGEP Web / Correios CWS) nem de intermediadores pagos de frete (como Frenet ou Melhor Envio).
+- **Motivação:**
+  - A API restrita dos Correios exige contratação jurídica prévia com faturamento mínimo mensal, cartões de postagem e credenciais proprietárias suscetíveis a instabilidades operacionais.
+  - Como o modelo de produto é uniforme (ímãs 5x5 cm pesando cerca de 25 gramas a unidade) e despachado do ateliê próprio no Recreio dos Bandeirantes/RJ, a tabela própria de faixas por peso/região com consulta pública do CEP oferece previsibilidade de custos, margem de lucro controlada, zero custo com mensalidades de software e funcionamento contínuo mesmo em eventuais indisponibilidades de gateways externos.

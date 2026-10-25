@@ -51,6 +51,8 @@ export const SecaoClientesV5: React.FC = () => {
   const [formEstado, setFormEstado] = useState('RJ')
   const [formCep, setFormCep] = useState('')
   const [formEndereco, setFormEndereco] = useState('')
+  const [buscandoCepV5, setBuscandoCepV5] = useState(false)
+  const [avisoCepV5, setAvisoCepV5] = useState<string | null>(null)
   const [formOrigem, setFormOrigem] = useState<OrigemCliente>('WhatsApp')
   const [formConsentimento, setFormConsentimento] = useState(false)
   const [formBaseLegal, setFormBaseLegal] = useState<BaseLegalLgpd>('Consentimento do titular')
@@ -515,54 +517,94 @@ export const SecaoClientesV5: React.FC = () => {
                 </div>
               </div>
 
-              {/* Endereço Nacional */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="col-span-2">
-                  <label className="block font-bold text-[#4E342E] mb-1">Cidade *</label>
-                  <input
-                    type="text"
-                    value={formCidade}
-                    onChange={(e) => setFormCidade(e.target.value)}
-                    placeholder="Ex: Rio de Janeiro, Niterói, São Paulo"
-                    className="w-full px-3 py-2 border rounded-xl"
-                    required
-                  />
+              {/* Endereço Nacional com Consulta ViaCEP */}
+              <div className="space-y-2 p-3 bg-gray-50/70 rounded-2xl border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-[#4E342E] text-[11px]">
+                    Endereço & Localidade
+                  </span>
+                  {buscandoCepV5 && (
+                    <span className="text-[10px] text-[#FF1493] animate-pulse">
+                      Buscando CEP...
+                    </span>
+                  )}
                 </div>
-                <div>
-                  <label className="block font-bold text-[#4E342E] mb-1">Estado (UF) *</label>
-                  <input
-                    type="text"
-                    value={formEstado}
-                    onChange={(e) => setFormEstado(e.target.value.toUpperCase())}
-                    maxLength={2}
-                    placeholder="RJ"
-                    className="w-full px-3 py-2 border rounded-xl uppercase font-mono"
-                    required
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block font-bold text-[#4E342E] mb-1">CEP</label>
-                  <input
-                    type="text"
-                    value={formCep}
-                    onChange={(e) => setFormCep(e.target.value)}
-                    placeholder="22790-000"
-                    className="w-full px-3 py-2 border rounded-xl"
-                  />
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block font-bold text-[#4E342E] mb-1">CEP (8 dígitos)</label>
+                    <input
+                      type="text"
+                      value={formCep}
+                      onChange={async (e) => {
+                        const val = e.target.value
+                        setFormCep(val)
+                        setAvisoCepV5(null)
+                        const limpo = val.replace(/\D/g, '')
+                        if (limpo.length === 8) {
+                          setBuscandoCepV5(true)
+                          try {
+                            const { consultarCep } = await import('@/services/viaCep')
+                            const res = await consultarCep(limpo)
+                            setFormCidade(res.cidade)
+                            setFormEstado(res.uf)
+                            if (res.logradouro) {
+                              setFormEndereco(
+                                `${res.logradouro}${res.bairro ? ` - ${res.bairro}` : ''}`,
+                              )
+                            }
+                            setAvisoCepV5(`Localizado: ${res.cidade}/${res.uf}`)
+                          } catch (err: any) {
+                            setAvisoCepV5(err.message || 'CEP não encontrado.')
+                          } finally {
+                            setBuscandoCepV5(false)
+                          }
+                        }
+                      }}
+                      placeholder="22790-000"
+                      maxLength={9}
+                      className="w-full px-3 py-2 border rounded-xl"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block font-bold text-[#4E342E] mb-1">Endereço Completo</label>
+                    <input
+                      type="text"
+                      value={formEndereco}
+                      onChange={(e) => setFormEndereco(e.target.value)}
+                      placeholder="Rua, número, complemento"
+                      className="w-full px-3 py-2 border rounded-xl"
+                    />
+                  </div>
                 </div>
-                <div className="col-span-2">
-                  <label className="block font-bold text-[#4E342E] mb-1">Endereço Completo</label>
-                  <input
-                    type="text"
-                    value={formEndereco}
-                    onChange={(e) => setFormEndereco(e.target.value)}
-                    placeholder="Rua, número, complemento"
-                    className="w-full px-3 py-2 border rounded-xl"
-                  />
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="col-span-2">
+                    <label className="block font-bold text-[#4E342E] mb-1">Cidade *</label>
+                    <input
+                      type="text"
+                      value={formCidade}
+                      onChange={(e) => setFormCidade(e.target.value)}
+                      placeholder="Ex: Rio de Janeiro, Niterói, São Paulo"
+                      className="w-full px-3 py-2 border rounded-xl"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-[#4E342E] mb-1">Estado (UF) *</label>
+                    <input
+                      type="text"
+                      value={formEstado}
+                      onChange={(e) => setFormEstado(e.target.value.toUpperCase())}
+                      maxLength={2}
+                      placeholder="RJ"
+                      className="w-full px-3 py-2 border rounded-xl uppercase font-mono"
+                      required
+                    />
+                  </div>
                 </div>
+
+                {avisoCepV5 && <p className="text-[10px] text-[#FF1493] italic">{avisoCepV5}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-2">

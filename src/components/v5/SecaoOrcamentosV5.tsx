@@ -43,6 +43,35 @@ export const SecaoOrcamentosV5: React.FC = () => {
   const [formValidadeDias, setFormValidadeDias] = useState<number>(7)
   const [formObservacoes, setFormObservacoes] = useState('')
 
+  // Frete Automático no Orçamento
+  const [formCepFrete, setFormCepFrete] = useState('')
+  const [opcoesFreteOrc, setOpcoesFreteOrc] = useState<any[]>([])
+  const [buscandoFreteOrc, setBuscandoFreteOrc] = useState(false)
+  const [avisoFreteOrc, setAvisoFreteOrc] = useState<string | null>(null)
+
+  const dispararCalculoFreteOrc = async (ufAlvo: string, cidAlvo?: string, qtd?: number) => {
+    setBuscandoFreteOrc(true)
+    try {
+      const { calcularOpcoesFrete } = await import('@/services/frete')
+      const res = await calcularOpcoesFrete({
+        uf: ufAlvo,
+        cidade: cidAlvo,
+        quantidadeItens: qtd || formQuantidade,
+      })
+      setOpcoesFreteOrc(res.opcoes)
+      if (res.opcoes.length > 0) {
+        setFormFrete(res.opcoes[0].preco_centavos / 100)
+        setAvisoFreteOrc(null)
+      } else {
+        setAvisoFreteOrc('Nenhuma faixa tarifária cobre o destino. Insira o frete manualmente.')
+      }
+    } catch {
+      /* Silencioso */
+    } finally {
+      setBuscandoFreteOrc(false)
+    }
+  }
+
   // Form aprovação para venda
   const [formaPagamento, setFormaPagamento] = useState('PIX')
   const [exigeSinal, setExigeSinal] = useState(false)
@@ -143,7 +172,25 @@ export const SecaoOrcamentosV5: React.FC = () => {
         </div>
 
         <button
-          onClick={() => setShowModalNovo(true)}
+          onClick={() => {
+            const cli = data.clientes.find((c) => c.id === formClienteId) || data.clientes[0]
+            if (cli?.cep) {
+              setFormCepFrete(cli.cep)
+              import('@/services/frete').then(({ calcularOpcoesFrete }) => {
+                calcularOpcoesFrete({
+                  uf: cli.estado,
+                  cidade: cli.cidade,
+                  quantidadeItens: formQuantidade,
+                }).then((res) => {
+                  setOpcoesFreteOrc(res.opcoes)
+                  if (res.opcoes.length > 0) {
+                    setFormFrete(res.opcoes[0].preco_centavos / 100)
+                  }
+                })
+              })
+            }
+            setShowModalNovo(true)
+          }}
           className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#FF1493] hover:bg-[#E01284] rounded-full shadow-sm transition-all"
         >
           <Plus className="w-4 h-4" />
@@ -371,18 +418,92 @@ export const SecaoOrcamentosV5: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block font-bold text-[#4E342E] mb-1">Frete (R$)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formFrete}
-                    onChange={(e) => setFormFrete(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border rounded-xl"
-                  />
+              {/* Cálculo Automático de Frete com ViaCEP e Tabela Própria */}
+              <div className="p-3 bg-gray-50 border rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-[#4E342E] text-[11px]">
+                    Frete Automático (ViaCEP + Tabela do Ateliê)
+                  </span>
+                  {buscandoFreteOrc && (
+                    <span className="text-[10px] text-[#FF1493] animate-pulse">Calculando...</span>
+                  )}
                 </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block font-bold text-[#4E342E] mb-1">CEP de Entrega</label>
+                    <input
+                      type="text"
+                      value={formCepFrete}
+                      onChange={async (e) => {
+                        const val = e.target.value
+                        setFormCepFrete(val)
+                        const limpo = val.replace(/\D/g, '')
+                        if (limpo.length === 8) {
+                          setBuscandoFreteOrc(true)
+                          try {
+                            const { consultarCep } = await import('@/services/viaCep')
+                            const res = await consultarCep(limpo)
+                            await dispararCalculoFreteOrc(res.uf, res.cidade, formQuantidade)
+                          } catch (err: any) {
+                            setAvisoFreteOrc(err.message || 'CEP não encontrado.')
+                          } finally {
+                            setBuscandoFreteOrc(false)
+                          }
+                        }
+                      }}
+                      placeholder="22790-000"
+                      maxLength={9}
+                      className="w-full px-3 py-1.5 border rounded-xl text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-[#4E342E] mb-1">
+                      Frete Gravado (R$)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formFrete}
+                      onChange={(e) => setFormFrete(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-1.5 border rounded-xl text-xs font-bold"
+                    />
+                  </div>
+                </div>
+
+                {opcoesFreteOrc.length > 0 && (
+                  <div className="space-y-1 pt-1">
+                    <span className="text-[10px] text-gray-500 font-semibold">
+                      Sugestões pela tabela tarifária:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {opcoesFreteOrc.map((opt) => (
+                        <button
+                          key={opt.faixa_id || opt.nome}
+                          type="button"
+                          onClick={() => setFormFrete(opt.preco_centavos / 100)}
+                          className="px-2 py-1 rounded-lg border text-[10px] bg-white hover:bg-pink-50 border-gray-200 flex items-center gap-1"
+                        >
+                          <span className="font-medium">{opt.nome}:</span>
+                          <span className="font-bold text-[#FF1493]">
+                            {opt.preco_centavos === 0
+                              ? 'Grátis'
+                              : `R$ ${(opt.preco_centavos / 100).toFixed(2)}`}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {avisoFreteOrc && (
+                  <p className="text-[10px] text-amber-700 italic">{avisoFreteOrc}</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block font-bold text-[#4E342E] mb-1">Desconto (R$)</label>
                   <input

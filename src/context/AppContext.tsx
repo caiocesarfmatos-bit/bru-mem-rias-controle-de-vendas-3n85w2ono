@@ -14,6 +14,8 @@ import {
   MovimentacaoEstoque,
   ProdutoProntoItem,
   EstoqueData,
+  MetaVendas,
+  PeriodoMetaTipo,
 } from '@/types/app'
 import {
   carregarDados,
@@ -29,6 +31,7 @@ import {
   AUDIT_PADRAO,
   SETTINGS_PADRAO,
   ESTOQUE_PADRAO,
+  METAS_PADRAO,
 } from '@/lib/storage'
 import { sanitizarTexto } from '@/lib/formatters'
 
@@ -100,6 +103,16 @@ interface AppContextType {
   deleteMovimentacaoEstoque: (id: string) => void
   updateProdutoPronto: (id: string, item: Partial<ProdutoProntoItem>) => void
   addProdutoPronto: (item: Omit<ProdutoProntoItem, 'id' | 'atualizadoEm'>) => void
+
+  // Metas de Vendas
+  salvarMetaVendas: (meta: {
+    id?: string
+    periodType: PeriodoMetaTipo
+    metaReceita?: number
+    metaLucro?: number
+    metaQuantidade?: number
+  }) => void
+  excluirMetaVendas: (id: string) => void
 
   // Configurações e Backup
   updateSettings: (newSettings: Partial<AppSettings>) => void
@@ -936,6 +949,90 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     )
   }
 
+  // --- METAS DE VENDAS ---
+  const salvarMetaVendas = (dados: {
+    id?: string
+    periodType: PeriodoMetaTipo
+    metaReceita?: number
+    metaLucro?: number
+    metaQuantidade?: number
+  }) => {
+    const agoraIso = new Date().toISOString()
+    const sanitizarValor = (val?: number) => {
+      if (val === undefined || isNaN(val)) return undefined
+      return Math.max(0, Number(val.toFixed(2)))
+    }
+
+    const metaReceita = sanitizarValor(dados.metaReceita)
+    const metaLucro = sanitizarValor(dados.metaLucro)
+    const metaQuantidade =
+      dados.metaQuantidade !== undefined && !isNaN(dados.metaQuantidade)
+        ? Math.max(0, Math.round(dados.metaQuantidade))
+        : undefined
+
+    setData((prev) => {
+      const metasAtuais = prev.metasVendas || []
+      const existeIndex = dados.id
+        ? metasAtuais.findIndex((m) => m.id === dados.id)
+        : metasAtuais.findIndex((m) => m.periodType === dados.periodType)
+
+      let novasMetas: MetaVendas[]
+      if (existeIndex >= 0) {
+        const metaExistente = metasAtuais[existeIndex]
+        const atualizada: MetaVendas = {
+          ...metaExistente,
+          periodType: dados.periodType,
+          metaReceita,
+          metaLucro,
+          metaQuantidade,
+          atualizadoEm: agoraIso,
+        }
+        novasMetas = metasAtuais.map((m, idx) => (idx === existeIndex ? atualizada : m))
+      } else {
+        const nova: MetaVendas = {
+          id: dados.id || 'meta-' + dados.periodType + '-' + Date.now(),
+          periodType: dados.periodType,
+          metaReceita,
+          metaLucro,
+          metaQuantidade,
+          criadoEm: agoraIso,
+        }
+        novasMetas = [...metasAtuais, nova]
+      }
+
+      return {
+        ...prev,
+        metasVendas: novasMetas,
+      }
+    })
+
+    const periodLabel = dados.periodType === 'mensal' ? 'mensal' : 'semanal'
+    const detalheParts: string[] = []
+    if (metaReceita !== undefined) detalheParts.push(`Receita R$ ${metaReceita.toFixed(2)}`)
+    if (metaLucro !== undefined) detalheParts.push(`Lucro R$ ${metaLucro.toFixed(2)}`)
+    if (metaQuantidade !== undefined) detalheParts.push(`${metaQuantidade} ímãs`)
+
+    logAudit(
+      'Painel',
+      dados.id ? 'Meta de vendas atualizada' : 'Meta de vendas definida',
+      `Meta ${periodLabel} configurada: ${detalheParts.join(', ') || 'Sem valores definidos'}.`,
+    )
+  }
+
+  const excluirMetaVendas = (id: string) => {
+    const meta = (data.metasVendas || []).find((m) => m.id === id)
+    setData((prev) => ({
+      ...prev,
+      metasVendas: (prev.metasVendas || []).filter((m) => m.id !== id),
+    }))
+
+    logAudit(
+      'Painel',
+      'Meta de vendas excluída',
+      `Meta ${meta?.periodType || id} foi removida das configurações.`,
+    )
+  }
+
   // --- CONFIGURAÇÕES E RESTAURAÇÃO ---
   const updateSettings = (newSettings: Partial<AppSettings>) => {
     setSettings((prev) => ({ ...prev, ...newSettings }))
@@ -962,6 +1059,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       produtos: PRODUTOS_PADRAO,
       clientes: CLIENTES_PADRAO,
       fornecedores: FORNECEDORES_PADRAO,
+      estoque: ESTOQUE_PADRAO,
+      metasVendas: METAS_PADRAO,
       version: 1,
     }
     setData(defaults)
@@ -1022,6 +1121,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteMovimentacaoEstoque,
         updateProdutoPronto,
         addProdutoPronto,
+        salvarMetaVendas,
+        excluirMetaVendas,
         updateSettings,
         restoreDataFromJson,
         resetAllData,

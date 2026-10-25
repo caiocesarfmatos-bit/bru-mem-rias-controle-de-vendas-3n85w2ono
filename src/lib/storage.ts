@@ -9,6 +9,7 @@ import {
   InsumoEstoque,
   MovimentacaoEstoque,
   ProdutoProntoItem,
+  MetaVendas,
 } from '@/types/app'
 
 export const STORAGE_KEYS = {
@@ -754,6 +755,25 @@ export const ESTOQUE_PADRAO: EstoqueData = {
   produtosProntos: PRODUTOS_PRONTOS_PADRAO,
 }
 
+export const METAS_PADRAO: MetaVendas[] = [
+  {
+    id: 'meta-mensal-padrao',
+    periodType: 'mensal',
+    metaReceita: 2000,
+    metaLucro: 1200,
+    metaQuantidade: 150,
+    criadoEm: '2025-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'meta-semanal-padrao',
+    periodType: 'semanal',
+    metaReceita: 500,
+    metaLucro: 300,
+    metaQuantidade: 40,
+    criadoEm: '2025-01-01T00:00:00.000Z',
+  },
+]
+
 export const SETTINGS_PADRAO: AppSettings = {
   margemMinimaPct: 40,
   produtoAtivoId: 'prod-ima-5x5-avulso',
@@ -771,6 +791,7 @@ export function carregarDados(): AppData {
         clientes: CLIENTES_PADRAO,
         fornecedores: FORNECEDORES_PADRAO,
         estoque: ESTOQUE_PADRAO,
+        metasVendas: METAS_PADRAO,
         version: 1,
       }
       salvarDados(inicial)
@@ -780,9 +801,18 @@ export function carregarDados(): AppData {
     if (!parsed.produtos || !Array.isArray(parsed.produtos)) {
       throw new Error('Formato inválido')
     }
+    let precisaSalvar = false
     // Garante retrocompatibilidade se a propriedade estoque ainda não existir no localStorage existente
     if (!parsed.estoque || !Array.isArray(parsed.estoque.insumos)) {
       parsed.estoque = ESTOQUE_PADRAO
+      precisaSalvar = true
+    }
+    // Garante retrocompatibilidade se metasVendas não existir no localStorage
+    if (!parsed.metasVendas || !Array.isArray(parsed.metasVendas)) {
+      parsed.metasVendas = METAS_PADRAO
+      precisaSalvar = true
+    }
+    if (precisaSalvar) {
       salvarDados(parsed)
     }
     return parsed
@@ -793,6 +823,7 @@ export function carregarDados(): AppData {
       clientes: CLIENTES_PADRAO,
       fornecedores: FORNECEDORES_PADRAO,
       estoque: ESTOQUE_PADRAO,
+      metasVendas: METAS_PADRAO,
       version: 1,
     }
     salvarDados(defaults)

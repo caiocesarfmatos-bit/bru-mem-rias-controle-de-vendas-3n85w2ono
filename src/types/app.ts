@@ -170,10 +170,23 @@ export interface EstoqueData {
   produtosProntos: ProdutoProntoItem[]
 }
 
+export type PeriodoMetaTipo = 'mensal' | 'semanal'
+
+export interface MetaVendas {
+  id: string
+  periodType: PeriodoMetaTipo // tipo de período da meta (mensal ou semanal)
+  metaReceita?: number // meta de receita em R$ (opcional)
+  metaLucro?: number // meta de lucro líquido em R$ (opcional)
+  metaQuantidade?: number // meta de quantidade de ímãs vendidos (opcional)
+  criadoEm: string // ISO
+  atualizadoEm?: string // ISO
+}
+
 export interface AppData {
   produtos: ProdutoKit[]
   clientes: Cliente[]
   fornecedores: Fornecedor[]
   estoque?: EstoqueData
+  metasVendas?: MetaVendas[]
   version: number
 }

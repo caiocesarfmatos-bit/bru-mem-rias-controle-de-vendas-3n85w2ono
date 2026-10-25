@@ -17,6 +17,7 @@ import {
 } from '@/lib/relatoriosUtils'
 import { BadgeVariacao } from '@/components/BadgeVariacao'
 import { SeletorPeriodo } from '@/components/SeletorPeriodo'
+import { SecaoMetasVendas } from '@/components/SecaoMetasVendas'
 import { useToast } from '@/hooks/use-toast'
 import {
   Activity,
@@ -46,6 +47,8 @@ export const ModuloPainel: React.FC = () => {
     setPeriodoCustomInicio,
     periodoCustomFim,
     setPeriodoCustomFim,
+    salvarMetaVendas,
+    excluirMetaVendas,
   } = useApp()
   const { toast } = useToast()
 
@@ -421,6 +424,17 @@ export const ModuloPainel: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* SEÇÃO DE METAS DE VENDAS DO PERÍODO (DESTAQUE NO PAINEL) */}
+      <SecaoMetasVendas
+        metas={data.metasVendas || []}
+        kpis={kpis}
+        intervaloAtual={intervaloAtual}
+        periodoRelatorioTipo={tipoAtual}
+        labelPeriodo={labelPeriodo}
+        onSalvarMeta={salvarMetaVendas}
+        onExcluirMeta={excluirMetaVendas}
+      />
 
       {/* 3. WIDGETS DE RELATÓRIO NO PAINEL (DESTAQUES RESUMIDOS) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

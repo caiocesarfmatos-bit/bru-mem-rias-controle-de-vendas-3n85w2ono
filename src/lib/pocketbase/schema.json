@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-10-25T19:05:14.752Z",
+  "generatedAt": "2026-10-25T20:21:42.132Z",
   "collections": [
     {
       "name": "users",
       "type": "auth",
       "apiRules": {
-        "list": "id = @request.auth.id",
-        "view": "id = @request.auth.id",
-        "create": "",
-        "update": "id = @request.auth.id",
-        "delete": "id = @request.auth.id"
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.perfil = 'administrador'",
+        "update": "@request.auth.id = id || @request.auth.perfil = 'administrador'",
+        "delete": "@request.auth.perfil = 'administrador'"
       },
       "fields": [
         {
@@ -37,11 +37,1664 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "perfil",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "administrador",
+            "gestor",
+            "vendedor",
+            "operador_caixa",
+            "estoquista",
+            "consulta"
+          ]
+        },
+        {
+          "name": "ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "bloqueado_ate",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tentativas_falhas",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
         "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
+      ]
+    },
+    {
+      "name": "tabela_valores",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.perfil = 'administrador'",
+        "update": "@request.auth.perfil = 'administrador'",
+        "delete": "@request.auth.perfil = 'administrador'"
+      },
+      "fields": [
+        {
+          "name": "dominio",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "codigo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "rotulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "ordem",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "regras_json",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_tabela_valores_dom_cod ON tabela_valores (dominio, codigo)",
+        "CREATE INDEX idx_tabela_valores_dominio ON tabela_valores (dominio, ordem ASC)"
+      ]
+    },
+    {
+      "name": "pessoas",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.perfil = 'administrador'"
+      },
+      "fields": [
+        {
+          "name": "tipo_pessoa",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["FISICA", "JURIDICA"]
+        },
+        {
+          "name": "documento",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "nome_razao_social",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "nome_fantasia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "inscricao_estadual",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["ativo", "inativo", "bloqueado"]
+        },
+        {
+          "name": "data_cadastro",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacao_interna",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_pessoas_documento ON pessoas (documento)",
+        "CREATE INDEX idx_pessoas_nome ON pessoas (nome_razao_social)",
+        "CREATE INDEX idx_pessoas_tipo_status ON pessoas (tipo_pessoa, status)"
+      ]
+    },
+    {
+      "name": "papel_cliente",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.perfil = 'administrador'"
+      },
+      "fields": [
+        {
+          "name": "pessoa",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pessoas"
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["ativo", "bloqueado", "em_avaliacao"]
+        },
+        {
+          "name": "limite_credito_centavos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "forma_pagamento_preferencial",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "vendedor_responsavel",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_papel_cliente_pessoa ON papel_cliente (pessoa)"]
+    },
+    {
+      "name": "papel_fornecedor",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.perfil = 'administrador'"
+      },
+      "fields": [
+        {
+          "name": "pessoa",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pessoas"
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["ativo", "bloqueado", "em_avaliacao"]
+        },
+        {
+          "name": "prazo_padrao_entrega_dias",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "condicao_pagamento_padrao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_papel_fornecedor_pessoa ON papel_fornecedor (pessoa)"]
+    },
+    {
+      "name": "contatos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "pessoa",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pessoas"
+        },
+        {
+          "name": "nome_contato",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "papel",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["comercial", "financeiro", "recado", "entrega", "outro"]
+        },
+        {
+          "name": "telefone_fixo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "celular",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "whatsapp",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_preferencial",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_contatos_pessoa ON contatos (pessoa)"]
+    },
+    {
+      "name": "enderecos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "pessoa",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pessoas"
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["fiscal", "entrega", "cobranca"]
+        },
+        {
+          "name": "cep",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "logradouro",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "numero",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "complemento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "bairro",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cidade",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "uf",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "pais",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_principal",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_enderecos_pessoa ON enderecos (pessoa)"]
+    },
+    {
+      "name": "redes_sociais",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "pessoa",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pessoas"
+        },
+        {
+          "name": "tipo_rede",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["instagram", "facebook", "tiktok", "pinterest", "linkedin", "outro"]
+        },
+        {
+          "name": "identificador",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "url_completa",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "is_oficial",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_redes_sociais_pessoa ON redes_sociais (pessoa)"]
+    },
+    {
+      "name": "categorias_produto",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.perfil = 'administrador'"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_categorias_produto_nome ON categorias_produto (nome)"]
+    },
+    {
+      "name": "produtos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.perfil = 'administrador'"
+      },
+      "fields": [
+        {
+          "name": "sku",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "codigo_barras",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao_curta",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "categoria",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "categorias_produto"
+        },
+        {
+          "name": "unidade_compra",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "unidade_venda",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "fator_conversao",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "estoque_minimo",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "controla_lote",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["ativo", "inativo", "descontinuado"]
+        },
+        {
+          "name": "campo_fiscal_ncm",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "campo_fiscal_cfop",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_produtos_sku ON produtos (sku)",
+        "CREATE INDEX idx_produtos_nome ON produtos (nome)",
+        "CREATE INDEX idx_produtos_categoria ON produtos (categoria)"
+      ]
+    },
+    {
+      "name": "tabelas_preco",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.perfil = 'administrador'"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "moeda",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "publico_alvo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["varejo", "atacado", "contrato"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["ativo", "inativo"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_tabelas_preco_nome ON tabelas_preco (nome)"]
+    },
+    {
+      "name": "precos_produto",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.perfil = 'administrador'"
+      },
+      "fields": [
+        {
+          "name": "produto",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "produtos"
+        },
+        {
+          "name": "tabela_preco",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "tabelas_preco"
+        },
+        {
+          "name": "valor_centavos",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "preco_minimo_centavos",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_inicio_vigencia",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_fim_vigencia",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "usuario_responsavel",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "motivo_alteracao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_precos_prod_tab ON precos_produto (produto, tabela_preco, data_inicio_vigencia DESC)"
+      ]
+    },
+    {
+      "name": "produto_fornecedor",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "produto",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "produtos"
+        },
+        {
+          "name": "fornecedor",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pessoas"
+        },
+        {
+          "name": "codigo_item_fornecedor",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "custo_acordado_centavos",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "prazo_entrega_dias",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "quantidade_minima_pedido",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_preferencial",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_prod_forn_unique ON produto_fornecedor (produto, fornecedor)"
+      ]
+    },
+    {
+      "name": "locais_estoque",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.perfil = 'administrador'",
+        "update": "@request.auth.perfil = 'administrador'",
+        "delete": "@request.auth.perfil = 'administrador'"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["deposito_principal", "mostruario", "defeitos"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_locais_estoque_nome ON locais_estoque (nome)"]
+    },
+    {
+      "name": "movimento_estoque",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "produto",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "produtos"
+        },
+        {
+          "name": "local",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "locais_estoque"
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["entrada", "saida", "ajuste", "devolucao", "transferencia", "perda"]
+        },
+        {
+          "name": "quantidade",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "custo_unitario_centavos",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "lote",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_validade",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "documento_origem_tipo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "documento_origem_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "movimento_origem_estorno",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "usuario",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "data_hora",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "observacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_mov_est_prod_local ON movimento_estoque (produto, local, data_hora DESC)",
+        "CREATE INDEX idx_mov_est_doc_origem ON movimento_estoque (documento_origem_tipo, documento_origem_id)"
+      ]
+    },
+    {
+      "name": "pedidos_venda",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.perfil = 'administrador'"
+      },
+      "fields": [
+        {
+          "name": "numero_sequencial",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cliente",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pessoas"
+        },
+        {
+          "name": "data_emissao",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "vendedor_responsavel",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["rascunho", "confirmado", "faturado", "cancelado", "devolvido"]
+        },
+        {
+          "name": "subtotal_centavos",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "desconto_centavos",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "acrescimo_centavos",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "total_centavos",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "observacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "usuario",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_pedidos_venda_num ON pedidos_venda (numero_sequencial)",
+        "CREATE INDEX idx_pedidos_venda_cliente ON pedidos_venda (cliente, data_emissao DESC)",
+        "CREATE INDEX idx_pedidos_venda_status ON pedidos_venda (status)"
+      ]
+    },
+    {
+      "name": "itens_pedido",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "pedido",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pedidos_venda"
+        },
+        {
+          "name": "produto",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "produtos"
+        },
+        {
+          "name": "local_estoque",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "locais_estoque"
+        },
+        {
+          "name": "quantidade",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "preco_unitario_praticado_centavos",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "custo_unitario_momento_centavos",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "desconto_item_centavos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_item_centavos",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_itens_pedido_pedido ON itens_pedido (pedido)",
+        "CREATE INDEX idx_itens_pedido_produto ON itens_pedido (produto)"
+      ]
+    },
+    {
+      "name": "pagamentos_pedido",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "pedido",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pedidos_venda"
+        },
+        {
+          "name": "forma_pagamento",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["PIX", "CREDITO", "DEBITO", "LINK", "DINHEIRO"]
+        },
+        {
+          "name": "valor_centavos",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "quantidade_parcelas",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "identificador_transacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pendente", "aprovado", "estornado", "cancelado"]
+        },
+        {
+          "name": "data_previsao",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_efetivacao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "usuario",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_pag_ped_pedido ON pagamentos_pedido (pedido)",
+        "CREATE INDEX idx_pag_ped_forma_status ON pagamentos_pedido (forma_pagamento, status)"
+      ]
+    },
+    {
+      "name": "contas_financeiras",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.perfil = 'administrador'",
+        "update": "@request.auth.perfil = 'administrador'",
+        "delete": "@request.auth.perfil = 'administrador'"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["caixa_fisico", "banco"]
+        },
+        {
+          "name": "saldo_inicial_centavos",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_saldo_inicial",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["ativo", "inativo"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_contas_fin_nome ON contas_financeiras (nome)"]
+    },
+    {
+      "name": "categorias_financeiras",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.perfil = 'administrador' || @request.auth.perfil = 'gestor'",
+        "update": "@request.auth.perfil = 'administrador' || @request.auth.perfil = 'gestor'",
+        "delete": "@request.auth.perfil = 'administrador'"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "natureza",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["receita", "despesa", "transferencia"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_cat_fin_nome ON categorias_financeiras (nome)"]
+    },
+    {
+      "name": "lancamentos_financeiros",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["entrada", "saida", "transferencia"]
+        },
+        {
+          "name": "valor_centavos",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "moeda",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "conta_financeira",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "contas_financeiras"
+        },
+        {
+          "name": "categoria_financeira",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "categorias_financeiras"
+        },
+        {
+          "name": "centro_custo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_competencia",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_vencimento",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_pagamento",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["previsto", "realizado", "cancelado"]
+        },
+        {
+          "name": "parte_envolvida",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "pessoas"
+        },
+        {
+          "name": "documento_origem_tipo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "documento_origem_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "lancamento_origem_estorno",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "forma_pagamento",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["PIX", "CREDITO", "DEBITO", "LINK", "DINHEIRO"]
+        },
+        {
+          "name": "chave_idempotencia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "usuario",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "observacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_lanc_fin_idemp ON lancamentos_financeiros (chave_idempotencia) WHERE chave_idempotencia != ''",
+        "CREATE INDEX idx_lanc_fin_competencia ON lancamentos_financeiros (data_competencia DESC)",
+        "CREATE INDEX idx_lanc_fin_pagamento ON lancamentos_financeiros (data_pagamento DESC)",
+        "CREATE INDEX idx_lanc_fin_status ON lancamentos_financeiros (status)"
+      ]
+    },
+    {
+      "name": "logs_auditoria",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.perfil = 'administrador' || @request.auth.perfil = 'gestor'",
+        "view": "@request.auth.perfil = 'administrador' || @request.auth.perfil = 'gestor'",
+        "create": "@request.auth.id != ''",
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "entidade",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "identificador_registro",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "campo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "valor_anterior",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "valor_novo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "usuario",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "data_hora",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "origem",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "endereco_ip",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_logs_audit_ent_id ON logs_auditoria (entidade, identificador_registro)",
+        "CREATE INDEX idx_logs_audit_data ON logs_auditoria (data_hora DESC)"
       ]
     }
   ]

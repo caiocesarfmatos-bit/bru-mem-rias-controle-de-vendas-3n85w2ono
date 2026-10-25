@@ -53,7 +53,7 @@ export async function solicitarBackupIntegralServidor(): Promise<RespostaBackupS
 
   return {
     correlationId: resp.resultado.correlationId,
-    versaoSistema: '0.0.16',
+    versaoSistema: '0.0.20',
     ambiente: 'Skip Cloud PocketBase v0.36',
     geradoEm: resp.resultado.dataHora,
     solicitadoPor: {

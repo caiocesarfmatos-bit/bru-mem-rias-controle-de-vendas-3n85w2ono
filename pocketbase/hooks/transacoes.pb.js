@@ -1418,7 +1418,7 @@ routerAdd('POST', '/backend/v1/sistema/exportar-backup', (c) => {
 
   return c.json(200, {
     correlationId: correlationId,
-    versaoSistema: '0.0.16',
+    versaoSistema: '0.0.20',
     ambiente: 'Skip Cloud PocketBase v0.36',
     geradoEm: agoraIso,
     solicitadoPor: {

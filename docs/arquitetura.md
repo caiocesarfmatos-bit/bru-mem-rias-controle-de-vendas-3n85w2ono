@@ -72,3 +72,26 @@ O ateliê Bru Memórias Personalizados está sediado no **Rio de Janeiro (Recrei
 - **Motivação:**
   - A API restrita dos Correios exige contratação jurídica prévia com faturamento mínimo mensal, cartões de postagem e credenciais proprietárias suscetíveis a instabilidades operacionais.
   - Como o modelo de produto é uniforme (ímãs 5x5 cm pesando cerca de 25 gramas a unidade) e despachado do ateliê próprio no Recreio dos Bandeirantes/RJ, a tabela própria de faixas por peso/região com consulta pública do CEP oferece previsibilidade de custos, margem de lucro controlada, zero custo com mensalidades de software e funcionamento contínuo mesmo em eventuais indisponibilidades de gateways externos.
+
+## 5. Dashboard de Métricas Gerenciais (Versão 0.0.20)
+
+### 5.1 Propósito e Visão Estratégica
+
+A Central Administrativa conta com um painel integrado de métricas operacionais e financeiras (`src/components/sistema/PainelMetricas.tsx` e `src/services/dashboardMetricas.ts`), permitindo que a liderança tome decisões rápidas e orientadas a dados reais.
+
+### 5.2 Controle de Acesso e Perfis
+
+- **Administrador e Gestor**: Acesso completo e irrestrito a todos os blocos: Vendas, Financeiro (contas a pagar, contas a receber com vencidas em destaque, fluxo de caixa e despesas por categoria), Estoque & Produção, e Comercial.
+- **Vendedor**: Filtro automático no servidor/cliente para suas próprias vendas e orçamentos, com cartões de desempenho individual, top produtos e taxas de conversão (métricas financeiras sensíveis como contas a pagar/receber são suprimidas).
+- **Caixa, Estoquista e Consulta**: Acesso ajustado de acordo com suas atribuições operacionais na matriz de permissões.
+
+### 5.3 Regras de Competência e Precisão Financeira
+
+- **Datas de Competência**: Seletor de período flexível (Hoje, Últimos 7 dias, Mês atual, Mês anterior, Ano atual, Personalizado) aplicado a todos os cálculos conforme as datas contábeis dos lançamentos e pedidos.
+- **Valores em Centavos**: Tolerância zero para ponto flutuante em valores monetários (`valor_centavos`). Formatação padronizada para Real brasileiro (`R$ X.XXX,XX`) com centavos exatos.
+- **Sem Números Decorativos**: Regra permanente respeitada estritamente. Não há contadores artificiais ou números visuais vazios — apenas dados funcionais auditáveis extraídos das coleções do PocketBase (`pedidos_venda`, `itens_pedido`, `lancamentos_financeiros`, `movimento_estoque`, `produtos`, `pessoas`, `tabela_valores`).
+
+### 5.4 Exportação CSV e Trilha de Auditoria
+
+- O painel conta com exportação em CSV com cabeçalho institucional oficial de Bru Memórias Personalizados, contendo a data/hora oficial de Brasília e discriminação de todos os indicadores calculados.
+- Cada exportação é registrada de forma imutável na coleção `logs_auditoria` para controle de compliance.

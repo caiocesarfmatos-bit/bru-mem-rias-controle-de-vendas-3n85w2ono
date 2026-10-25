@@ -5,10 +5,12 @@ import { ModuloCatalogoEstoque } from './ModuloCatalogoEstoque'
 import { ModuloVendas } from './ModuloVendas'
 import { ModuloFinanceiro } from './ModuloFinanceiro'
 import { ModuloRelatorios } from './ModuloRelatorios'
+import { PainelMetricas } from './PainelMetricas'
 import { ModuloUsuarios } from './ModuloUsuarios'
 import { SecaoCentroBackup } from './SecaoCentroBackup'
 import { SecaoFaixasFrete } from './SecaoFaixasFrete'
 import {
+  LayoutDashboard,
   ShoppingCart,
   Users,
   Package,
@@ -22,6 +24,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { BrandLogo } from '@/components/BrandLogo'
 type ModuloId =
+  | 'dashboard'
   | 'vendas'
   | 'pessoas'
   | 'estoque'
@@ -33,10 +36,36 @@ type ModuloId =
 
 export const CentralAdministrativa: React.FC = () => {
   const { usuario, logout, temPermissao } = useAuth()
-  const [moduloAtivo, setModuloAtivo] = useState<ModuloId>('vendas')
+  const [moduloAtivo, setModuloAtivo] = useState<ModuloId>('dashboard')
+
+  // Controle de permissão de visualização das abas:
+  // Administrador e Gestor: veem tudo
+  // Vendedor: vê Dashboard (métricas próprias), Vendas e Pessoas
+  // Caixa: Vendas, Financeiro e Dashboard
+  // Estoquista: Estoque, Frete e Dashboard
+  // Consulta: Relatórios, Dashboard
+  const podeAcessarDashboard =
+    temPermissao('relatorios.ver') ||
+    usuario?.perfil === 'vendedor' ||
+    usuario?.perfil === 'operador_caixa' ||
+    usuario?.perfil === 'estoquista' ||
+    usuario?.perfil === 'administrador' ||
+    usuario?.perfil === 'gestor'
+  const podeAcessarVendas = temPermissao('pedidos.ver')
+  const podeAcessarPessoas = temPermissao('pessoas.ver')
+  const podeAcessarEstoque = temPermissao('produtos.ver')
+  const podeAcessarFrete =
+    temPermissao('faixas_frete.gerenciar') ||
+    usuario?.perfil === 'administrador' ||
+    usuario?.perfil === 'gestor' ||
+    usuario?.perfil === 'estoquista'
+  const podeAcessarFinanceiro = temPermissao('financeiro.ver')
+  const podeAcessarRelatorios = temPermissao('relatorios.ver')
 
   const renderConteudo = () => {
     switch (moduloAtivo) {
+      case 'dashboard':
+        return <PainelMetricas />
       case 'vendas':
         return <ModuloVendas />
       case 'pessoas':
@@ -54,7 +83,7 @@ export const CentralAdministrativa: React.FC = () => {
       case 'backup':
         return <SecaoCentroBackup />
       default:
-        return <ModuloVendas />
+        return <PainelMetricas />
     }
   }
 
@@ -93,77 +122,103 @@ export const CentralAdministrativa: React.FC = () => {
         {/* Barra de Navegação Funcional (Regra: sem numeração decorativa de módulos) */}
         <div className="border-t border-[#F0E4E0] bg-[#FFF0F5]/30">
           <div className="max-w-[1240px] mx-auto px-4 flex gap-1 overflow-x-auto py-1.5 scrollbar-none">
-            <button
-              onClick={() => setModuloAtivo('vendas')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
-                moduloAtivo === 'vendas'
-                  ? 'bg-[#FF1493] text-white shadow-sm'
-                  : 'text-[#4E342E]/80 hover:bg-white hover:text-[#4E342E]'
-              }`}
-            >
-              <ShoppingCart className="w-3.5 h-3.5" />
-              Vendas & Pedidos
-            </button>
+            {podeAcessarDashboard && (
+              <button
+                onClick={() => setModuloAtivo('dashboard')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
+                  moduloAtivo === 'dashboard'
+                    ? 'bg-[#E63980] text-white shadow-sm'
+                    : 'text-[#4E342E]/80 hover:bg-white hover:text-[#4E342E]'
+                }`}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                Dashboard de Métricas
+              </button>
+            )}
 
-            <button
-              onClick={() => setModuloAtivo('pessoas')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
-                moduloAtivo === 'pessoas'
-                  ? 'bg-[#FF1493] text-white shadow-sm'
-                  : 'text-[#4E342E]/80 hover:bg-white hover:text-[#4E342E]'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5" />
-              Pessoas (Clientes e Fornecedores)
-            </button>
+            {podeAcessarVendas && (
+              <button
+                onClick={() => setModuloAtivo('vendas')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
+                  moduloAtivo === 'vendas'
+                    ? 'bg-[#FF1493] text-white shadow-sm'
+                    : 'text-[#4E342E]/80 hover:bg-white hover:text-[#4E342E]'
+                }`}
+              >
+                <ShoppingCart className="w-3.5 h-3.5" />
+                Vendas & Pedidos
+              </button>
+            )}
 
-            <button
-              onClick={() => setModuloAtivo('estoque')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
-                moduloAtivo === 'estoque'
-                  ? 'bg-[#FF1493] text-white shadow-sm'
-                  : 'text-[#4E342E]/80 hover:bg-white hover:text-[#4E342E]'
-              }`}
-            >
-              <Package className="w-3.5 h-3.5" />
-              Catálogo & Estoque
-            </button>
+            {podeAcessarPessoas && (
+              <button
+                onClick={() => setModuloAtivo('pessoas')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
+                  moduloAtivo === 'pessoas'
+                    ? 'bg-[#FF1493] text-white shadow-sm'
+                    : 'text-[#4E342E]/80 hover:bg-white hover:text-[#4E342E]'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                Pessoas (Clientes e Fornecedores)
+              </button>
+            )}
 
-            <button
-              onClick={() => setModuloAtivo('frete')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
-                moduloAtivo === 'frete'
-                  ? 'bg-[#FF1493] text-white shadow-sm'
-                  : 'text-[#4E342E]/80 hover:bg-white hover:text-[#4E342E]'
-              }`}
-            >
-              <Truck className="w-3.5 h-3.5" />
-              Tabela de Frete
-            </button>
+            {podeAcessarEstoque && (
+              <button
+                onClick={() => setModuloAtivo('estoque')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
+                  moduloAtivo === 'estoque'
+                    ? 'bg-[#FF1493] text-white shadow-sm'
+                    : 'text-[#4E342E]/80 hover:bg-white hover:text-[#4E342E]'
+                }`}
+              >
+                <Package className="w-3.5 h-3.5" />
+                Catálogo & Estoque
+              </button>
+            )}
 
-            <button
-              onClick={() => setModuloAtivo('financeiro')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
-                moduloAtivo === 'financeiro'
-                  ? 'bg-[#FF1493] text-white shadow-sm'
-                  : 'text-[#4E342E]/80 hover:bg-white hover:text-[#4E342E]'
-              }`}
-            >
-              <Landmark className="w-3.5 h-3.5" />
-              Financeiro & Fluxo de Caixa
-            </button>
+            {podeAcessarFrete && (
+              <button
+                onClick={() => setModuloAtivo('frete')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
+                  moduloAtivo === 'frete'
+                    ? 'bg-[#FF1493] text-white shadow-sm'
+                    : 'text-[#4E342E]/80 hover:bg-white hover:text-[#4E342E]'
+                }`}
+              >
+                <Truck className="w-3.5 h-3.5" />
+                Tabela de Frete
+              </button>
+            )}
 
-            <button
-              onClick={() => setModuloAtivo('relatorios')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
-                moduloAtivo === 'relatorios'
-                  ? 'bg-[#FF1493] text-white shadow-sm'
-                  : 'text-[#4E342E]/80 hover:bg-white hover:text-[#4E342E]'
-              }`}
-            >
-              <BarChart3 className="w-3.5 h-3.5" />
-              Relatórios Gerenciais
-            </button>
+            {podeAcessarFinanceiro && (
+              <button
+                onClick={() => setModuloAtivo('financeiro')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
+                  moduloAtivo === 'financeiro'
+                    ? 'bg-[#FF1493] text-white shadow-sm'
+                    : 'text-[#4E342E]/80 hover:bg-white hover:text-[#4E342E]'
+                }`}
+              >
+                <Landmark className="w-3.5 h-3.5" />
+                Financeiro & Fluxo de Caixa
+              </button>
+            )}
+
+            {podeAcessarRelatorios && (
+              <button
+                onClick={() => setModuloAtivo('relatorios')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
+                  moduloAtivo === 'relatorios'
+                    ? 'bg-[#FF1493] text-white shadow-sm'
+                    : 'text-[#4E342E]/80 hover:bg-white hover:text-[#4E342E]'
+                }`}
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+                Relatórios Gerenciais
+              </button>
+            )}
 
             {usuario?.perfil === 'administrador' && (
               <>

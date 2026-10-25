@@ -4,7 +4,9 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Lock, Mail, ShieldAlert, Sparkles } from 'lucide-react'
+import { Lock, Mail, ShieldAlert } from 'lucide-react'
+import { BrandEmblem } from '@/design/BrandEmblem'
+import { BRAND_TOKENS } from '@/design/tokens'
 
 export const LoginView: React.FC = () => {
   const { login } = useAuth()
@@ -26,28 +28,34 @@ export const LoginView: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FFF0F5] via-white to-[#F9EBEA] flex flex-col justify-center items-center p-4 text-[#4E342E]">
+    <div className="min-h-screen bg-gradient-to-br from-[#FFF8F4] via-white to-[#FCE7F0]/40 flex flex-col justify-center items-center p-4 text-[#3D150B]">
       <div className="w-full max-w-md">
-        {/* Identidade Visual Bru Memórias */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#FF1493]/10 border-2 border-[#FF1493]/30 mb-3 shadow-inner">
-            <Sparkles className="w-8 h-8 text-[#FF1493]" />
+        {/* Emblema Oficial da Marca Bru Memórias Personalizados */}
+        <div className="flex flex-col items-center text-center mb-6">
+          <div className="transition-transform duration-300 hover:scale-[1.02]">
+            <BrandEmblem
+              variant="main"
+              size={140}
+              withPadding={true}
+              surface="light"
+              alt="Bru Memórias Personalizados - Emblema Oficial"
+            />
           </div>
-          <h1 className="text-3xl font-serif font-bold text-[#4E342E]">
-            <span className="text-[#FF1493] italic font-serif">Bru</span> Memórias
-          </h1>
-          <p className="text-xs uppercase tracking-widest text-[#4E342E]/70 font-semibold mt-1">
-            Controle Administrativo de Vendas • Ateliê Recreio
+          <p className="text-xs font-semibold tracking-wider text-[#5C2214] mt-1">
+            {BRAND_TOKENS.subtagline}
+          </p>
+          <p className="text-[11px] uppercase tracking-widest text-[#3D150B]/60 font-medium mt-0.5">
+            Central do Administrador
           </p>
         </div>
 
-        <Card className="border border-[#F0E4E0] shadow-xl bg-white/95 backdrop-blur-sm">
+        <Card className="border border-[#EEDFD7] shadow-xl bg-white/95 backdrop-blur-sm">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-xl font-bold flex items-center gap-2 text-[#4E342E]">
-              <Lock className="w-5 h-5 text-[#FF1493]" />
+            <CardTitle className="text-xl font-bold flex items-center gap-2 text-[#3D150B]">
+              <Lock className="w-5 h-5 text-[#E63980]" />
               Acesso Restrito
             </CardTitle>
-            <CardDescription className="text-[#4E342E]/70 text-sm">
+            <CardDescription className="text-[#5C2214]/80 text-sm">
               Entre com suas credenciais autorizadas pelo Administrador
             </CardDescription>
           </CardHeader>
@@ -76,7 +84,7 @@ export const LoginView: React.FC = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="seu.email@brumemorias.com.br"
-                    className="pl-9 border-[#E0D0CC] focus-visible:ring-[#FF1493]"
+                    className="pl-9 border-[#E0D0CC] focus-visible:ring-[#E63980]"
                   />
                 </div>
               </div>
@@ -84,12 +92,12 @@ export const LoginView: React.FC = () => {
               <div className="space-y-2">
                 <Label
                   htmlFor="senha"
-                  className="text-xs font-semibold uppercase tracking-wider text-[#4E342E]/80"
+                  className="text-xs font-semibold uppercase tracking-wider text-[#3D150B]/80"
                 >
                   Senha de Acesso
                 </Label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-[#4E342E]/40 absolute left-3 top-3" />
+                  <Lock className="w-4 h-4 text-[#3D150B]/40 absolute left-3 top-3" />
                   <Input
                     id="senha"
                     type="password"
@@ -97,7 +105,7 @@ export const LoginView: React.FC = () => {
                     value={senha}
                     onChange={(e) => setSenha(e.target.value)}
                     placeholder="••••••••"
-                    className="pl-9 border-[#E0D0CC] focus-visible:ring-[#FF1493]"
+                    className="pl-9 border-[#E0D0CC] focus-visible:ring-[#E63980]"
                   />
                 </div>
               </div>
@@ -105,7 +113,7 @@ export const LoginView: React.FC = () => {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#FF1493] hover:bg-[#D8117E] text-white font-medium py-2.5 shadow-md hover:shadow-lg transition-all"
+                className="w-full bg-[#E63980] hover:bg-[#D1256E] text-white font-medium py-2.5 shadow-md hover:shadow-lg transition-all"
               >
                 {loading ? 'Validando Acesso...' : 'Entrar no Sistema'}
               </Button>

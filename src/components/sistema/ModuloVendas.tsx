@@ -34,7 +34,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { ShoppingCart, Plus, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import { ShoppingCart, Plus, CheckCircle2, XCircle, AlertCircle, FileText } from 'lucide-react'
+import { ModalComprovantePedido, ComprovantePedidoDados } from '@/components/ModalComprovantePedido'
 
 export const ModuloVendas: React.FC = () => {
   const [pedidos, setPedidos] = useState<PedidoVenda[]>([])
@@ -44,6 +45,7 @@ export const ModuloVendas: React.FC = () => {
   const [formasPag, setFormasPag] = useState<TabelaValorItem[]>([])
   const [loading, setLoading] = useState(false)
   const [modalAberto, setModalAberto] = useState(false)
+  const [comprovanteAtivo, setComprovanteAtivo] = useState<ComprovantePedidoDados | null>(null)
 
   // Form states do novo pedido
   const [clienteId, setClienteId] = useState('')
@@ -382,22 +384,74 @@ export const ModuloVendas: React.FC = () => {
                     <span className="text-[10px] text-[#4E342E]/60 uppercase">Total Liquidado</span>
                   </div>
 
-                  {isConfirmado && (
+                  <div className="flex items-center gap-2">
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleCancelar(p)}
-                      className="text-xs text-red-600 border-red-200 hover:bg-red-50"
+                      onClick={() => {
+                        setComprovanteAtivo({
+                          numero: p.numero_sequencial,
+                          dataEmissao: p.data_emissao,
+                          clienteNome: p.cliente_expand?.nome_razao_social || 'Cliente Registrada',
+                          clienteDocumento: p.cliente_expand?.cpf_cnpj || undefined,
+                          clienteContato: p.cliente_expand?.telefone_principal || undefined,
+                          itens:
+                            p.itens && p.itens.length > 0
+                              ? p.itens.map((it: any) => ({
+                                  descricao: it.descricao || 'Ímãs Personalizados 5x5',
+                                  quantidade: it.quantidade || 1,
+                                  valorUnitarioCentavos:
+                                    it.preco_unitario_centavos || p.total_centavos,
+                                  subtotalCentavos: it.subtotal_centavos || p.total_centavos,
+                                }))
+                              : [
+                                  {
+                                    descricao: 'Pacote de Ímãs Personalizados 5x5',
+                                    quantidade: 1,
+                                    valorUnitarioCentavos: p.total_centavos,
+                                    subtotalCentavos: p.total_centavos,
+                                  },
+                                ],
+                          totalCentavos: p.total_centavos,
+                          formaPagamento:
+                            p.pagamentos && p.pagamentos.length > 0
+                              ? p.pagamentos.map((pag: any) => pag.forma_pagamento).join(', ')
+                              : 'PIX / À Vista',
+                          status: p.status,
+                          observacoes: p.observacoes || undefined,
+                        })
+                      }}
+                      className="text-xs text-[#3D150B] border-[#EEDFD7] hover:bg-[#FFF8F4] hover:text-[#E63980]"
+                      title="Visualizar e imprimir comprovante oficial com o emblema da marca"
                     >
-                      <XCircle className="w-3.5 h-3.5 mr-1" />
-                      Cancelar
+                      <FileText className="w-3.5 h-3.5 mr-1 text-[#E63980]" />
+                      Comprovante
                     </Button>
-                  )}
+
+                    {isConfirmado && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCancelar(p)}
+                        className="text-xs text-red-600 border-red-200 hover:bg-red-50"
+                      >
+                        <XCircle className="w-3.5 h-3.5 mr-1" />
+                        Cancelar
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
           )
         })}
+
+        {/* Modal de Comprovante Oficial com Emblema da Marca */}
+        <ModalComprovantePedido
+          aberto={Boolean(comprovanteAtivo)}
+          onFechar={() => setComprovanteAtivo(null)}
+          pedido={comprovanteAtivo}
+        />
 
         {pedidos.length === 0 && !loading && (
           <div className="text-center py-12 text-[#4E342E]/60">

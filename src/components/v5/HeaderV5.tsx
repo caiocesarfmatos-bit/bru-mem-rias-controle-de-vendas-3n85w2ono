@@ -24,6 +24,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { BrandLogo } from '@/components/BrandLogo'
 
 interface SubsecaoItem {
   id: SubsecaoId
@@ -133,19 +134,9 @@ export const HeaderV5: React.FC = () => {
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#F0E4E0] shadow-sm">
       {/* Nível Superior: Logo, Identificação do Administrador, Backup e Sair */}
       <div className="max-w-[1200px] mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
-        {/* Logo Bru Memórias */}
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-[#FFF0F8] text-[#FF1493] flex items-center justify-center font-bold text-sm">
-            BM
-          </div>
-          <div className="flex flex-col">
-            <span className="font-brand-script text-lg text-[#FF1493] leading-none">
-              Bru Memórias
-            </span>
-            <span className="text-[10px] text-[#4E342E]/70 font-semibold tracking-wide">
-              Central do Administrador • Simples Nacional
-            </span>
-          </div>
+        {/* Logo Oficial: Emblema Tipográfico Secundário + Tagline */}
+        <div className="flex items-center">
+          <BrandLogo mode="header" size="sm" showTagline={true} />
         </div>
 
         {/* Ações: Backup e Botão Sair Sempre Visível */}

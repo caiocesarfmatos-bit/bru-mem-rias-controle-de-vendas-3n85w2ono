@@ -243,8 +243,8 @@ export const Header: React.FC = () => {
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#F0E4E0] shadow-sm">
       {/* Barra Superior */}
       <div className="max-w-[1200px] mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
-        {/* Logo */}
-        <BrandLogo />
+        {/* Logo Oficial: Emblema Tipográfico Secundário + Tagline */}
+        <BrandLogo mode="header" size="md" showTagline={true} />
 
         {/* Botões de Ação Rápida */}
         <div className="flex items-center gap-2 flex-shrink-0">

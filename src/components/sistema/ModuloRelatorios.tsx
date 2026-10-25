@@ -35,8 +35,12 @@ export const ModuloRelatorios: React.FC = () => {
     }
   }
 
-  // Exportação CSV segura com todos os campos auditados
+  // Exportação CSV segura com todos os campos auditados e cabeçalho institucional com marca
   const exportarCsvVendas = () => {
+    const topoInstitucional =
+      'BRU MEMÓRIAS PERSONALIZADOS - "Pequenos detalhes. Grandes lembranças."\n' +
+      'EMBLEMA OFICIAL: Ímãs Personalizados 5x5 • Rio de Janeiro • Central do Administrador\n' +
+      `Exportado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}\n\n`
     const cabecalho =
       'Numero;Data;Cliente;Documento_Cliente;Status;Subtotal_Reais;Desconto_Reais;Acrescimo_Reais;Total_Reais;Qtd_Itens;Formas_Pagamento;Observacao\n'
     const linhas = pedidos
@@ -58,7 +62,9 @@ export const ModuloRelatorios: React.FC = () => {
       })
       .join('\n')
 
-    const blob = new Blob(['\uFEFF' + cabecalho + linhas], { type: 'text/csv;charset=utf-8;' })
+    const blob = new Blob(['\uFEFF' + topoInstitucional + cabecalho + linhas], {
+      type: 'text/csv;charset=utf-8;',
+    })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url

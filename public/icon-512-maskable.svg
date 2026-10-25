@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="pwaMaskableBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="80%" stop-color="#FFF8F4" />
+      <stop offset="100%" stop-color="#FCE7F0" />
+    </radialGradient>
+  </defs>
+  <!-- Fundo 100% preenchido para maskable sem cantos transparentes -->
+  <rect width="512" height="512" fill="url(#pwaMaskableBg)" />
+  <!-- Área segura central (círculo 80% do diâmetro ~ 410px) -->
+  <image
+    href="/assets/emblem-main.png"
+    x="64"
+    y="64"
+    width="384"
+    height="384"
+    preserveAspectRatio="xMidYMid meet"
+  />
+</svg>

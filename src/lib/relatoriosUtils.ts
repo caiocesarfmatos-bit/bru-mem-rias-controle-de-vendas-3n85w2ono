@@ -751,7 +751,10 @@ export function exportarCsvRelatorioCompleto(
 ): void {
   const linhas: string[] = []
 
-  linhas.push('RELATÓRIO AVANÇADO DE VENDAS - BRU MEMÓRIAS')
+  linhas.push('BRU MEMÓRIAS PERSONALIZADOS - "Pequenos detalhes. Grandes lembranças."')
+  linhas.push(
+    'EMBLEMA OFICIAL: Ímãs Personalizados 5x5 • Rio de Janeiro • Central do Administrador',
+  )
   linhas.push(
     `Período Selecionado;${labelPeriodo};De;${formatarDataPtBR(intervalo.inicio)};Até;${formatarDataPtBR(intervalo.fim)}`,
   )
@@ -873,6 +876,8 @@ export function exportarCsvVendasProduto(
   )
   const conteudo = [
     `Relatório de Vendas por Produto - Período: ${periodoLabel}`,
+    'BRU MEMÓRIAS PERSONALIZADOS - "Pequenos detalhes. Grandes lembranças."',
+    'EMBLEMA OFICIAL: Ímãs Personalizados 5x5 • Rio de Janeiro',
     header.join(';'),
     ...rows,
   ].join('\r\n')
@@ -914,6 +919,8 @@ export function exportarCsvRankingClientes(
   )
   const conteudo = [
     `Ranking de Clientes - Período: ${periodoLabel}`,
+    'BRU MEMÓRIAS PERSONALIZADOS - "Pequenos detalhes. Grandes lembranças."',
+    'EMBLEMA OFICIAL: Ímãs Personalizados 5x5 • Rio de Janeiro',
     header.join(';'),
     ...rows,
   ].join('\r\n')

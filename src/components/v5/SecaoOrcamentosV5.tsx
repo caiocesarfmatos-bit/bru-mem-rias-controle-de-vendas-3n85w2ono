@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { formatarMoeda, formatarDataPtBR } from '@/lib/formatters'
 import { useToast } from '@/hooks/use-toast'
+import { ModalComprovantePedido, ComprovantePedidoDados } from '@/components/ModalComprovantePedido'
 
 export const SecaoOrcamentosV5: React.FC = () => {
   const {
@@ -31,6 +32,7 @@ export const SecaoOrcamentosV5: React.FC = () => {
   const [showModalNovo, setShowModalNovo] = useState(false)
   const [showModalAprovar, setShowModalAprovar] = useState<string | null>(null)
   const [showModalPerda, setShowModalPerda] = useState<string | null>(null)
+  const [comprovanteAtivo, setComprovanteAtivo] = useState<ComprovantePedidoDados | null>(null)
 
   // Form novo orçamento
   const [formClienteId, setFormClienteId] = useState('')
@@ -253,6 +255,37 @@ export const SecaoOrcamentosV5: React.FC = () => {
                       <span>Reemitir com Nova Validade</span>
                     </button>
                   )}
+
+                  <button
+                    onClick={() => {
+                      setComprovanteAtivo({
+                        numero: orc.numero,
+                        dataEmissao: orc.criadoEm || new Date().toISOString(),
+                        clienteNome: cliente?.nome || 'Cliente Cadastrada',
+                        clienteDocumento: cliente?.cpfCnpj || undefined,
+                        clienteContato: cliente?.telefone || undefined,
+                        itens: [
+                          {
+                            descricao: `Ímãs Personalizados 5x5 (${orc.quantidadeTotal} unidades)`,
+                            quantidade: orc.quantidadeTotal,
+                            valorUnitarioCentavos: Math.round(orc.precoUnitario * 100),
+                            subtotalCentavos: Math.round(
+                              orc.quantidadeTotal * orc.precoUnitario * 100,
+                            ),
+                          },
+                        ],
+                        totalCentavos: Math.round(orc.total * 100),
+                        formaPagamento: 'PIX / A Definir',
+                        status: orc.status,
+                        observacoes: orc.observacoes || undefined,
+                      })
+                    }}
+                    className="px-3 py-1.5 text-xs font-semibold text-[#3D150B] bg-[#FFF8F4] border border-[#EEDFD7] hover:bg-[#FCE7F0] hover:text-[#E63980] rounded-full flex items-center gap-1"
+                    title="Visualizar e imprimir comprovante oficial com emblema da marca"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-[#E63980]" />
+                    <span>Comprovante</span>
+                  </button>
 
                   {!isVencido && orc.status !== 'Aprovado' && orc.status !== 'Perdido' && (
                     <button
@@ -502,6 +535,13 @@ export const SecaoOrcamentosV5: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modal Comprovante Oficial com Emblema da Marca */}
+      <ModalComprovantePedido
+        aberto={Boolean(comprovanteAtivo)}
+        onFechar={() => setComprovanteAtivo(null)}
+        pedido={comprovanteAtivo}
+      />
 
       {/* Modal Registro de Motivo da Perda */}
       {showModalPerda && (

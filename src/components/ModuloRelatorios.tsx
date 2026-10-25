@@ -23,6 +23,7 @@ import {
   extrairTodosOsPedidos,
   paraYmd,
 } from '@/lib/relatoriosUtils'
+import { exportarHtmlRelatorioCompleto } from '@/lib/exportHtmlReport'
 import { useToast } from '@/hooks/use-toast'
 import {
   BarChart3,
@@ -200,12 +201,32 @@ export const ModuloRelatorios: React.FC = () => {
     )
     logAudit(
       'Relatórios',
-      'Exportação de relatório completo',
-      `Relatório de vendas exportado — período ${formatarDataPtBR(intervaloAtual.inicio)} a ${formatarDataPtBR(intervaloAtual.fim)}.`,
+      'Exportação de relatório completo CSV',
+      `Relatório de vendas exportado (CSV) com cabeçalho oficial — período ${formatarDataPtBR(intervaloAtual.inicio)} a ${formatarDataPtBR(intervaloAtual.fim)}.`,
     )
     toast({
       title: 'Relatório Completo exportado! 💖',
-      description: 'Arquivo CSV em padrão pt-BR pronto para o Excel.',
+      description: 'Arquivo CSV com marca oficial Bru Memórias pronto para o Excel.',
+    })
+  }
+
+  const handleExportarRelatorioHtml = () => {
+    exportarHtmlRelatorioCompleto(
+      intervaloAtual,
+      labelPeriodo,
+      kpis,
+      vendasPorProduto,
+      rankingClientes,
+      pedidosNoPeriodo,
+    )
+    logAudit(
+      'Relatórios',
+      'Exportação de relatório com emblema da marca',
+      `Relatório executivo HTML com emblema oficial exportado (${labelPeriodo}).`,
+    )
+    toast({
+      title: 'Relatório com Emblema da Marca exportado! 💖',
+      description: 'Documento oficial aberto para impressão e salvamento em PDF.',
     })
   }
 
@@ -331,12 +352,21 @@ export const ModuloRelatorios: React.FC = () => {
           </button>
 
           <button
-            onClick={handleExportarRelatorioCompleto}
-            className="inline-flex items-center justify-center gap-1.5 min-w-[44px] min-h-[44px] px-4 py-2 text-xs font-bold text-white bg-[#FF1493] hover:bg-[#E01284] rounded-full shadow-md transition-all duration-150 active:scale-95"
-            title="Exportar todas as seções para arquivo CSV completo"
+            onClick={handleExportarRelatorioHtml}
+            className="inline-flex items-center justify-center gap-1.5 min-w-[44px] min-h-[44px] px-4 py-2 text-xs font-bold text-white bg-[#E63980] hover:bg-[#D1256E] rounded-full shadow-md transition-all duration-150 active:scale-95"
+            title="Exportar documento oficial em HTML com emblema completo da marca"
           >
-            <Download className="w-4 h-4" />
-            <span>Exportar CSV Completo</span>
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Exportar Relatório com Emblema</span>
+          </button>
+
+          <button
+            onClick={handleExportarRelatorioCompleto}
+            className="inline-flex items-center justify-center gap-1.5 min-w-[44px] min-h-[44px] px-4 py-2 text-xs font-semibold text-[#3D150B] bg-[#FFF8F4] border border-[#EEDFD7] hover:bg-[#FAF7F6] rounded-full shadow-xs transition-all duration-150 active:scale-95"
+            title="Exportar todas as seções para arquivo CSV com cabeçalho oficial"
+          >
+            <Download className="w-4 h-4 text-[#E63980]" />
+            <span>Exportar CSV</span>
           </button>
         </div>
       </div>

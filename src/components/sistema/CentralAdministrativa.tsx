@@ -8,18 +8,17 @@ import { ModuloRelatorios } from './ModuloRelatorios'
 import { ModuloUsuarios } from './ModuloUsuarios'
 import { SecaoCentroBackup } from './SecaoCentroBackup'
 import {
+  ShoppingCart,
   Users,
   Package,
-  ShoppingCart,
   Landmark,
   BarChart3,
   Shield,
   LogOut,
-  Sparkles,
   Archive,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-
+import { BrandLogo } from '@/components/BrandLogo'
 type ModuloId =
   | 'vendas'
   | 'pessoas'
@@ -58,19 +57,10 @@ export const CentralAdministrativa: React.FC = () => {
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col text-[#4E342E]">
       {/* Topo Institucional Bru Memórias */}
       <header className="bg-white border-b border-[#F0E4E0] sticky top-0 z-30 shadow-sm">
-        <div className="max-w-[1240px] mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#FF1493]/10 border border-[#FF1493]/30 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-[#FF1493]" />
-            </div>
-            <div>
-              <h1 className="text-xl font-serif font-bold text-[#4E342E] leading-none">
-                <span className="text-[#FF1493] italic font-serif">Bru</span> Memórias
-              </h1>
-              <p className="text-[10px] uppercase tracking-widest text-[#4E342E]/70 font-semibold mt-0.5">
-                Ateliê de Ímãs Personalizados • Recreio dos Bandeirantes / RJ
-              </p>
-            </div>
+        <div className="max-w-[1240px] mx-auto px-4 py-2.5 flex justify-between items-center">
+          {/* Logo Oficial: Emblema Tipográfico Secundário + Tagline */}
+          <div className="flex items-center">
+            <BrandLogo mode="header" size="md" showTagline={true} />
           </div>
 
           <div className="flex items-center gap-4">

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useApp } from '@/context/AppContext'
-import { BrandLogo } from './BrandLogo'
+import { BrandEmblem } from '@/design/BrandEmblem'
 import { Sparkles, X, Heart, Shield, HelpCircle, ArrowRight } from 'lucide-react'
 
 export const OnboardingBanner: React.FC = () => {
@@ -55,20 +55,20 @@ export const OnboardingBanner: React.FC = () => {
       </button>
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
-        <div className="w-12 h-12 rounded-2xl bg-white shadow-sm border border-[#FF1493]/20 flex items-center justify-center text-2xl flex-shrink-0">
-          💖
+        <div className="shrink-0 bg-white rounded-2xl p-1 shadow-sm border border-[#EEDFD7]">
+          <BrandEmblem variant="main" size={56} withPadding={false} alt="Emblema Bru Memórias" />
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-brand-serif font-bold text-[#4E342E]">
-              Bem-vinda, Bru!
+            <h1 className="text-xl sm:text-2xl font-brand-serif font-bold text-[#3D150B]">
+              Bem-vinda à Central Bru Memórias Personalizados!
             </h1>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FF1493] text-white">
-              Recreio dos Bandeirantes, RJ
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E63980] text-white">
+              Rio de Janeiro • Recreio
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-[#4E342E]/80 mt-1">
-            Seu centro completo e independente de gestão de vendas para os lindos ímãs
+          <p className="text-xs sm:text-sm text-[#5C2214]/90 mt-1">
+            Gestão oficial e controle independente de vendas para os lindos ímãs fotográficos
             personalizados 5x5 cm.
           </p>
         </div>

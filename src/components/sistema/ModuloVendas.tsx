@@ -389,12 +389,20 @@ export const ModuloVendas: React.FC = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => {
+                        const contatoPref =
+                          p.cliente_expand?.contatos?.find((c) => c.is_preferencial) ||
+                          p.cliente_expand?.contatos?.[0]
+                        const telefoneCliente =
+                          contatoPref?.celular ||
+                          contatoPref?.whatsapp ||
+                          contatoPref?.telefone_fixo
+
                         setComprovanteAtivo({
                           numero: p.numero_sequencial,
                           dataEmissao: p.data_emissao,
                           clienteNome: p.cliente_expand?.nome_razao_social || 'Cliente Registrada',
-                          clienteDocumento: p.cliente_expand?.cpf_cnpj || undefined,
-                          clienteContato: p.cliente_expand?.telefone_principal || undefined,
+                          clienteDocumento: p.cliente_expand?.documento || undefined,
+                          clienteContato: telefoneCliente || undefined,
                           itens:
                             p.itens && p.itens.length > 0
                               ? p.itens.map((it: any) => ({
@@ -418,7 +426,7 @@ export const ModuloVendas: React.FC = () => {
                               ? p.pagamentos.map((pag: any) => pag.forma_pagamento).join(', ')
                               : 'PIX / À Vista',
                           status: p.status,
-                          observacoes: p.observacoes || undefined,
+                          observacoes: p.observacao || undefined,
                         })
                       }}
                       className="text-xs text-[#3D150B] border-[#EEDFD7] hover:bg-[#FFF8F4] hover:text-[#E63980]"

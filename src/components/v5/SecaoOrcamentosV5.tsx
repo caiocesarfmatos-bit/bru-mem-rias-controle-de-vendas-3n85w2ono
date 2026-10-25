@@ -260,10 +260,10 @@ export const SecaoOrcamentosV5: React.FC = () => {
                     onClick={() => {
                       setComprovanteAtivo({
                         numero: orc.numero,
-                        dataEmissao: orc.criadoEm || new Date().toISOString(),
+                        dataEmissao: orc.dataCriacao || new Date().toISOString(),
                         clienteNome: cliente?.nome || 'Cliente Cadastrada',
-                        clienteDocumento: cliente?.cpfCnpj || undefined,
-                        clienteContato: cliente?.telefone || undefined,
+                        clienteDocumento: undefined,
+                        clienteContato: cliente?.whatsapp || cliente?.telefoneRecado || undefined,
                         itens: [
                           {
                             descricao: `Ímãs Personalizados 5x5 (${orc.quantidadeTotal} unidades)`,

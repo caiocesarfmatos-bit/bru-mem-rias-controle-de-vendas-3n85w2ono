@@ -3,9 +3,10 @@ import {
   ResumoPeriodoKPIs,
   VendaProdutoReport,
   RankingClienteReport,
-  PedidoCliente,
+  paraYmd,
 } from '@/lib/relatoriosUtils'
-import { formatarMoeda, formatarDataPtBR, paraYmd } from '@/lib/formatters'
+import { PedidoCliente } from '@/types/app'
+import { formatarMoeda, formatarDataPtBR } from '@/lib/formatters'
 import { BRAND_TOKENS } from '@/design/tokens'
 
 /**

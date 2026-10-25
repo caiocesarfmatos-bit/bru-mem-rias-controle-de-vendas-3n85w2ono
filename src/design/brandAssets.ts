@@ -1,6 +1,6 @@
 import emblemMainImg from '@/assets/37c9fb9f-d32a-43c0-b43b-75c069f4e7ca-7fcbd.png'
 import logoSecondaryTransparentImg from '@/assets/67a966ee-3939-4dc4-a707-7b39fab5870e-3b523.png'
-import logoSecondaryWhiteImg from '@/assets/4043b879-1dd9-4bf9-a4e9-0b79878a2e1d-c5ae1.png'
+import logoSecondaryWhiteImg from '@/assets/e60773a4-3b33-4dd9-9105-df16c21795e4-07059.png'
 
 /**
  * Mapeamento e exportação oficial dos ativos da marca Bru Memórias:

@@ -1,7 +1,9 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useApp } from '@/context/AppContext'
 import { PedidoCliente } from '@/types/app'
 import { formatarMoeda, formatarDataPtBR, formatarNumero } from '@/lib/formatters'
+import { BadgeVariacao } from '@/components/BadgeVariacao'
+import { SeletorPeriodo } from '@/components/SeletorPeriodo'
 import {
   PeriodoRelatorioTipo,
   obterIntervalosPeriodo,
@@ -18,6 +20,7 @@ import {
   exportarCsvRelatorioCompleto,
   exportarCsvVendasProduto,
   exportarCsvRankingClientes,
+  extrairTodosOsPedidos,
   paraYmd,
 } from '@/lib/relatoriosUtils'
 import { useToast } from '@/hooks/use-toast'
@@ -47,43 +50,68 @@ import {
 } from 'lucide-react'
 
 export const ModuloRelatorios: React.FC = () => {
-  const { data, settings, logAudit, navegarParaCliente } = useApp()
+  const {
+    data,
+    settings,
+    logAudit,
+    navegarParaCliente,
+    focoSecaoRelatorio,
+    setFocoSecaoRelatorio,
+    periodoRelatorioTipo,
+    setPeriodoRelatorioTipo,
+    periodoCustomInicio,
+    setPeriodoCustomInicio,
+    periodoCustomFim,
+    setPeriodoCustomFim,
+  } = useApp()
   const { toast } = useToast()
-
-  // 1. FILTRO DE PERÍODO GLOBAL
-  const [periodoTipo, setPeriodoTipo] = useState<PeriodoRelatorioTipo>('mes_atual')
-  const hojeYmd = useMemo(() => paraYmd(new Date()), [])
-  const [dataInicioCustom, setDataInicioCustom] = useState<string>(() => {
-    const d = new Date()
-    d.setDate(d.getDate() - 30)
-    return paraYmd(d)
-  })
-  const [dataFimCustom, setDataFimCustom] = useState<string>(hojeYmd)
 
   // Expandir / recolher listagem de lançamentos
   const [expandirLancamentos, setExpandirLancamentos] = useState<boolean>(true)
   const [filtroStatusLancamento, setFiltroStatusLancamento] = useState<string>('todos')
   const [buscaLancamento, setBuscaLancamento] = useState<string>('')
 
-  // Intervalos de datas calculado
+  // 1. FILTRO DE PERÍODO GLOBAL (Sincronizado via AppContext com o Painel)
+  const tipoAtual = (periodoRelatorioTipo || 'mes_atual') as PeriodoRelatorioTipo
   const {
     atual: intervaloAtual,
     anterior: intervaloAnterior,
     label: labelPeriodo,
   } = useMemo(() => {
-    return obterIntervalosPeriodo(periodoTipo, dataInicioCustom, dataFimCustom)
-  }, [periodoTipo, dataInicioCustom, dataFimCustom])
+    return obterIntervalosPeriodo(tipoAtual, periodoCustomInicio, periodoCustomFim)
+  }, [tipoAtual, periodoCustomInicio, periodoCustomFim])
 
-  // Consolidar todos os pedidos registrados no sistema
+  // 2. Base de pedidos unificada via helper compartilhado
   const todosOsPedidos: PedidoCliente[] = useMemo(() => {
-    const list: PedidoCliente[] = []
-    data.clientes.forEach((cli) => {
-      cli.pedidos.forEach((p) => {
-        list.push(p)
-      })
-    })
-    return list.sort((a, b) => (b.data > a.data ? 1 : b.data < a.data ? -1 : 0))
+    return extrairTodosOsPedidos(data.clientes)
   }, [data.clientes])
+
+  // Scroll automático suave caso tenha vindo com foco em uma seção vindo do Painel
+  useEffect(() => {
+    if (!focoSecaoRelatorio) return
+
+    const timer = setTimeout(() => {
+      let elementId = ''
+      if (focoSecaoRelatorio === 'produtos') elementId = 'relatorio-secao-produtos'
+      if (focoSecaoRelatorio === 'clientes') elementId = 'relatorio-secao-clientes'
+      if (focoSecaoRelatorio === 'canais') elementId = 'relatorio-secao-canais'
+      if (focoSecaoRelatorio === 'resumo') elementId = 'relatorio-secao-resumo'
+
+      if (elementId) {
+        const el = document.getElementById(elementId)
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          el.classList.add('ring-2', 'ring-[#FF1493]', 'ring-offset-2')
+          setTimeout(() => {
+            el.classList.remove('ring-2', 'ring-[#FF1493]', 'ring-offset-2')
+          }, 2500)
+        }
+      }
+      setFocoSecaoRelatorio(null)
+    }, 100)
+
+    return () => clearTimeout(timer)
+  }, [focoSecaoRelatorio, setFocoSecaoRelatorio])
 
   // Pedidos filtrados para o período atual e período anterior
   const pedidosNoPeriodo = useMemo(() => {
@@ -313,89 +341,23 @@ export const ModuloRelatorios: React.FC = () => {
         </div>
       </div>
 
-      {/* 1. SELETOR DE PERÍODO GLOBAL (Card Interativo) */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#F0E4E0] shadow-soft-pink space-y-3 print:border-none print:shadow-none print:p-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#F0E4E0] pb-2">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-[#FF1493]" />
-            <h3 className="text-sm font-bold text-[#4E342E]">Filtro de Período do Relatório</h3>
-          </div>
-          <span className="text-xs font-medium text-[#FF1493] bg-[#FFF0F8] px-3 py-1 rounded-full border border-[#FF1493]/20">
-            Período Ativo: <strong>{labelPeriodo}</strong>
-          </span>
-        </div>
-
-        {/* Botões rápidos de período */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 print:hidden">
-          {(
-            [
-              { id: 'hoje', label: 'Hoje' },
-              { id: '7d', label: 'Últimos 7 dias' },
-              { id: 'mes_atual', label: 'Este mês' },
-              { id: 'mes_anterior', label: 'Mês passado' },
-              { id: 'ano_atual', label: 'Este ano' },
-              { id: 'ano_anterior', label: 'Ano passado' },
-              { id: 'personalizado', label: 'Personalizado' },
-            ] as { id: PeriodoRelatorioTipo; label: string }[]
-          ).map((item) => {
-            const isSelected = periodoTipo === item.id
-            return (
-              <button
-                key={item.id}
-                onClick={() => setPeriodoTipo(item.id)}
-                className={`min-h-[40px] px-3.5 py-1.5 text-xs font-semibold rounded-xl whitespace-nowrap transition-all duration-150 select-none ${
-                  isSelected
-                    ? 'bg-[#FF1493] text-white shadow-xs font-bold'
-                    : 'bg-[#F5EFEA] text-[#4E342E]/80 hover:bg-[#FF1493]/10 hover:text-[#FF1493]'
-                }`}
-              >
-                {item.label}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Seletor de Datas Personalizado */}
-        {periodoTipo === 'personalizado' && (
-          <div className="pt-2 flex flex-wrap items-center gap-3 bg-[#FFF0F8]/50 p-3 rounded-xl border border-[#FF1493]/20 print:hidden animate-fade-in">
-            <div className="flex items-center gap-2">
-              <label htmlFor="relatorio-data-inicio" className="text-xs font-bold text-[#4E342E]">
-                De:
-              </label>
-              <input
-                id="relatorio-data-inicio"
-                type="date"
-                value={dataInicioCustom}
-                max={dataFimCustom || hojeYmd}
-                onChange={(e) => setDataInicioCustom(e.target.value)}
-                className="px-2.5 py-1 text-xs border border-[#F0E4E0] rounded-lg bg-white text-[#4E342E] focus:ring-1 focus:ring-[#FF1493]"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label htmlFor="relatorio-data-fim" className="text-xs font-bold text-[#4E342E]">
-                Até:
-              </label>
-              <input
-                id="relatorio-data-fim"
-                type="date"
-                value={dataFimCustom}
-                min={dataInicioCustom}
-                max={hojeYmd}
-                onChange={(e) => setDataFimCustom(e.target.value)}
-                className="px-2.5 py-1 text-xs border border-[#F0E4E0] rounded-lg bg-white text-[#4E342E] focus:ring-1 focus:ring-[#FF1493]"
-              />
-            </div>
-            <span className="text-[11px] text-[#4E342E]/70 italic">
-              Comparativo automático com os mesmos dias anteriores imediatos (
-              {formatarDataPtBR(intervaloAnterior.inicio)} a{' '}
-              {formatarDataPtBR(intervaloAnterior.fim)}).
-            </span>
-          </div>
-        )}
+      {/* 1. SELETOR DE PERÍODO GLOBAL (Card Interativo Compartilhado com o Painel) */}
+      <div id="relatorio-secao-resumo">
+        <SeletorPeriodo
+          periodoTipo={tipoAtual}
+          onChangePeriodoTipo={(t) => setPeriodoRelatorioTipo(t)}
+          dataInicioCustom={periodoCustomInicio}
+          onChangeDataInicioCustom={(d) => setPeriodoCustomInicio(d)}
+          dataFimCustom={periodoCustomFim}
+          onChangeDataFimCustom={(d) => setPeriodoCustomFim(d)}
+          labelPeriodo={labelPeriodo}
+          intervaloAnterior={intervaloAnterior}
+          subtitulo="Sincronizado com o Painel de Desempenho em tempo real"
+        />
       </div>
 
       {/* 2. RESUMO DO PERÍODO COM COMPARATIVO (4 CARDS DE KPIS COM TENDÊNCIAS) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 transition-all duration-300 rounded-2xl">
         {/* Receita / Vendas */}
         <div className="bg-gradient-to-br from-white to-[#FFF0F8] p-4 sm:p-5 rounded-2xl border border-[#FF1493]/30 shadow-soft-pink flex flex-col justify-between">
           <div className="flex items-center justify-between mb-1.5">
@@ -411,7 +373,7 @@ export const ModuloRelatorios: React.FC = () => {
               {formatarMoeda(kpis.receitaTotal.atual)}
             </span>
             <div className="mt-2 flex items-center flex-wrap gap-1">
-              <RenderVariacao kpi={kpis.receitaTotal} />
+              <BadgeVariacao kpi={kpis.receitaTotal} />
             </div>
             <span className="block text-[10px] text-[#4E342E]/60 mt-1">
               Anterior: {formatarMoeda(kpis.receitaTotal.anterior)}
@@ -434,7 +396,7 @@ export const ModuloRelatorios: React.FC = () => {
               {formatarMoeda(kpis.lucroTotal.atual)}
             </span>
             <div className="mt-2 flex items-center flex-wrap gap-1">
-              <RenderVariacao kpi={kpis.lucroTotal} />
+              <BadgeVariacao kpi={kpis.lucroTotal} />
             </div>
             <span className="block text-[10px] text-emerald-800/70 mt-1">
               Margem média: <strong>{kpis.margemMedia.toFixed(1).replace('.', ',')}%</strong>
@@ -457,7 +419,7 @@ export const ModuloRelatorios: React.FC = () => {
               {formatarMoeda(kpis.ticketMedio.atual)}
             </span>
             <div className="mt-2 flex items-center flex-wrap gap-1">
-              <RenderVariacao kpi={kpis.ticketMedio} />
+              <BadgeVariacao kpi={kpis.ticketMedio} />
             </div>
             <span className="block text-[10px] text-[#4E342E]/60 mt-1">
               {kpis.pedidosCount} {kpis.pedidosCount === 1 ? 'pedido fechado' : 'pedidos fechados'}
@@ -481,7 +443,7 @@ export const ModuloRelatorios: React.FC = () => {
               <span className="text-xs font-normal text-[#4E342E]/70">unidades</span>
             </span>
             <div className="mt-2 flex items-center flex-wrap gap-1">
-              <RenderVariacao kpi={kpis.quantidadeTotal} />
+              <BadgeVariacao kpi={kpis.quantidadeTotal} />
             </div>
             <span className="block text-[10px] text-[#4E342E]/60 mt-1">
               Anterior: {kpis.quantidadeTotal.anterior} un
@@ -581,7 +543,10 @@ export const ModuloRelatorios: React.FC = () => {
       {/* GRID DUPLO: 1. VENDAS POR PRODUTO & CURVA ABC | 2. RANKING DE CLIENTES */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* TABELA: VENDAS POR PRODUTO / KIT & CURVA ABC (7 Colunas) */}
-        <div className="lg:col-span-7 bg-white rounded-2xl p-5 border border-[#F0E4E0] shadow-soft-pink space-y-4">
+        <div
+          id="relatorio-secao-produtos"
+          className="lg:col-span-7 bg-white rounded-2xl p-5 border border-[#F0E4E0] shadow-soft-pink space-y-4 transition-all duration-300"
+        >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#F0E4E0] pb-2">
             <div>
               <h3 className="text-base font-bold text-[#4E342E] flex items-center gap-2">
@@ -693,7 +658,10 @@ export const ModuloRelatorios: React.FC = () => {
         </div>
 
         {/* RANKING DE CLIENTES DO PERÍODO (5 Colunas) */}
-        <div className="lg:col-span-5 bg-white rounded-2xl p-5 border border-[#F0E4E0] shadow-soft-pink space-y-4">
+        <div
+          id="relatorio-secao-clientes"
+          className="lg:col-span-5 bg-white rounded-2xl p-5 border border-[#F0E4E0] shadow-soft-pink space-y-4 transition-all duration-300"
+        >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#F0E4E0] pb-2">
             <div>
               <h3 className="text-base font-bold text-[#4E342E] flex items-center gap-2">
@@ -835,7 +803,10 @@ export const ModuloRelatorios: React.FC = () => {
         </div>
 
         {/* 2. VENDAS POR CANAL DE DIVULGAÇÃO */}
-        <div className="bg-white rounded-2xl p-5 border border-[#F0E4E0] shadow-soft-pink space-y-3">
+        <div
+          id="relatorio-secao-canais"
+          className="bg-white rounded-2xl p-5 border border-[#F0E4E0] shadow-soft-pink space-y-3 transition-all duration-300"
+        >
           <div className="border-b border-[#F0E4E0] pb-2">
             <h3 className="text-sm font-bold text-[#4E342E] flex items-center gap-1.5">
               <Share2 className="w-4 h-4 text-[#FF1493]" />

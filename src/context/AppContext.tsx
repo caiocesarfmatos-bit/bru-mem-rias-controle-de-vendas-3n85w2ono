@@ -41,6 +41,15 @@ interface AppContextType {
   selectedClienteIdFoco?: string | null
   setSelectedClienteIdFoco: (id: string | null) => void
   navegarParaCliente: (clienteId: string) => void
+  navegarParaRelatorio: (secao?: 'produtos' | 'clientes' | 'canais' | 'resumo') => void
+  focoSecaoRelatorio?: string | null
+  setFocoSecaoRelatorio: (secao: string | null) => void
+  periodoRelatorioTipo: string
+  setPeriodoRelatorioTipo: (tipo: string) => void
+  periodoCustomInicio: string
+  setPeriodoCustomInicio: (data: string) => void
+  periodoCustomFim: string
+  setPeriodoCustomFim: (data: string) => void
   activeProduct: ProdutoKit
   setActiveProductId: (id: string) => void
 
@@ -106,10 +115,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [audit, setAudit] = useState<AuditEntry[]>(() => carregarAuditoria())
   const [settings, setSettings] = useState<AppSettings>(() => carregarConfiguracoes())
   const [selectedClienteIdFoco, setSelectedClienteIdFoco] = useState<string | null>(null)
+  const [focoSecaoRelatorio, setFocoSecaoRelatorio] = useState<string | null>(null)
+
+  // Período compartilhado entre Painel e Relatórios
+  const periodoRelatorioTipo = settings.periodoRelatorioTipo || 'mes_atual'
+  const setPeriodoRelatorioTipo = (tipo: string) => {
+    setSettings((prev) => ({ ...prev, periodoRelatorioTipo: tipo }))
+  }
+
+  const hojeIso = new Date().toISOString().split('T')[0]
+  const data30dAtrasIso = (() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 30)
+    return d.toISOString().split('T')[0]
+  })()
+
+  const periodoCustomInicio = settings.periodoCustomInicio || data30dAtrasIso
+  const setPeriodoCustomInicio = (ini: string) => {
+    setSettings((prev) => ({ ...prev, periodoCustomInicio: ini }))
+  }
+
+  const periodoCustomFim = settings.periodoCustomFim || hojeIso
+  const setPeriodoCustomFim = (fim: string) => {
+    setSettings((prev) => ({ ...prev, periodoCustomFim: fim }))
+  }
 
   const navegarParaCliente = (clienteId: string) => {
     setSelectedClienteIdFoco(clienteId)
     setSettings((prev) => ({ ...prev, abaAtiva: 'clientes' }))
+  }
+
+  const navegarParaRelatorio = (secao?: 'produtos' | 'clientes' | 'canais' | 'resumo') => {
+    if (secao) {
+      setFocoSecaoRelatorio(secao)
+    }
+    setSettings((prev) => ({ ...prev, abaAtiva: 'relatorios' }))
   }
 
   // Persistir dados quando mudarem
@@ -946,6 +986,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         selectedClienteIdFoco,
         setSelectedClienteIdFoco,
         navegarParaCliente,
+        navegarParaRelatorio,
+        focoSecaoRelatorio,
+        setFocoSecaoRelatorio,
+        periodoRelatorioTipo,
+        setPeriodoRelatorioTipo,
+        periodoCustomInicio,
+        setPeriodoCustomInicio,
+        periodoCustomFim,
+        setPeriodoCustomFim,
         activeProduct,
         setActiveProductId,
         updateProdutoLote,

@@ -114,6 +114,9 @@ export interface AppSettings {
   produtoAtivoId: string
   onboardingDispensado: boolean
   abaAtiva: TabId
+  periodoRelatorioTipo?: string
+  periodoCustomInicio?: string
+  periodoCustomFim?: string
 }
 
 export type TipoMovimentacaoEstoque = 'entrada' | 'saida'

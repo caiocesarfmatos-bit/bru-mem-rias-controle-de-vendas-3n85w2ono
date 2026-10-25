@@ -1,6 +1,9 @@
 // Utilitários de cálculo, filtros temporais e exportação CSV para Relatórios Avançados de Vendas
+// Fonte única de verdade compartilhada entre os módulos Painel e Relatórios.
 import { PedidoCliente, Cliente, ProdutoKit } from '@/types/app'
 import { formatarMoeda, formatarDataPtBR } from './formatters'
+
+export type PeriodoFocoRelatorio = 'produtos' | 'clientes' | 'canais' | 'resumo'
 
 export type PeriodoRelatorioTipo =
   | 'hoje'
@@ -915,4 +918,40 @@ export function exportarCsvRankingClientes(
     ...rows,
   ].join('\r\n')
   baixarCsv(`bru-memorias-ranking-clientes-${paraYmd(new Date())}.csv`, conteudo)
+}
+
+// ---------------- HELPERS UNIFICADOS COMPARTILHADOS ENTRE PAINEL E RELATÓRIOS ----------------
+
+/**
+ * Consolida todos os pedidos de todos os clientes em uma lista única ordenada por data desc.
+ * Usada pelo Painel e pelos Relatórios para garantir exatamente a mesma base de dados.
+ */
+export function extrairTodosOsPedidos(clientes: Cliente[]): PedidoCliente[] {
+  const list: PedidoCliente[] = []
+  clientes.forEach((cli) => {
+    cli.pedidos.forEach((p) => {
+      list.push(p)
+    })
+  })
+  return list.sort((a, b) => (b.data > a.data ? 1 : b.data < a.data ? -1 : 0))
+}
+
+/**
+ * Contabiliza clientes ativas considerando o intervalo informado (ou corte de 90 dias padrão).
+ * Quando intervalo é fornecido, checa se a cliente tem compras dentro desse intervalo.
+ */
+export function calcularClientesAtivasNoPeriodo(
+  clientes: Cliente[],
+  intervalo?: IntervaloDatas,
+): number {
+  if (intervalo) {
+    return clientes.filter((cli) =>
+      cli.pedidos.some((p) => p.data >= intervalo.inicio && p.data <= intervalo.fim),
+    ).length
+  }
+  // Fallback 90 dias padrão
+  const d = new Date()
+  d.setDate(d.getDate() - 90)
+  const corte = paraYmd(d)
+  return clientes.filter((cli) => cli.pedidos.some((p) => p.data >= corte)).length
 }

@@ -20,6 +20,7 @@ import {
   Users,
   Truck,
   LayoutDashboard,
+  BarChart3,
   Coins,
   Share2,
   FileSpreadsheet,
@@ -72,6 +73,7 @@ export const Header: React.FC = () => {
       badgeAlert: itensEstoqueBaixoCount > 0,
     },
     { id: 'painel', label: 'Painel', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { id: 'relatorios', label: 'Relatórios', icon: <BarChart3 className="w-4 h-4" /> },
   ]
 
   const handleExportJson = () => {

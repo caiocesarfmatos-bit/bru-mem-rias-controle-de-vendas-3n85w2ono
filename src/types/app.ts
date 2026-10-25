@@ -1,6 +1,13 @@
 // Tipos e modelos de dados para o Bru Memórias | Controle de Vendas
 
-export type TabId = 'custos' | 'calculadora' | 'clientes' | 'fornecedores' | 'estoque' | 'painel'
+export type TabId =
+  | 'custos'
+  | 'calculadora'
+  | 'clientes'
+  | 'fornecedores'
+  | 'estoque'
+  | 'painel'
+  | 'relatorios'
 
 export interface CustoLancamento {
   id: string
@@ -91,6 +98,7 @@ export type AuditModulo =
   | 'Fornecedores'
   | 'Estoque'
   | 'Painel'
+  | 'Relatórios'
   | 'Sistema'
 
 export interface AuditEntry {

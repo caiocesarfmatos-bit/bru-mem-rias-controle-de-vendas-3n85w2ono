@@ -46,7 +46,20 @@ export const ModuloClientes: React.FC = () => {
     updatePedidoStatus,
     deletePedidoCliente,
     activeProduct,
+    selectedClienteIdFoco,
+    setSelectedClienteIdFoco,
   } = useApp()
+
+  // Se veio redirecionado com um cliente específico em foco a partir dos Relatórios
+  React.useEffect(() => {
+    if (selectedClienteIdFoco) {
+      const cli = data.clientes.find((c) => c.id === selectedClienteIdFoco)
+      if (cli) {
+        setSelectedClienteHistory(cli)
+      }
+      setSelectedClienteIdFoco(null)
+    }
+  }, [selectedClienteIdFoco, data.clientes, setSelectedClienteIdFoco])
 
   const { toast } = useToast()
 

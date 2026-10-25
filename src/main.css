@@ -319,6 +319,54 @@
   }
 }
 
+/* Otimizações de Impressão e PDF para Relatórios */
+@media print {
+  header,
+  footer,
+  nav,
+  .print\\:hidden,
+  button,
+  select,
+  input {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: #1e1e1e !important;
+    font-size: 11pt !important;
+  }
+
+  .shadow-soft-pink,
+  .shadow-md,
+  .shadow-sm,
+  .shadow-2xs {
+    box-shadow: none !important;
+  }
+
+  .rounded-2xl,
+  .rounded-xl {
+    border-radius: 4px !important;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,

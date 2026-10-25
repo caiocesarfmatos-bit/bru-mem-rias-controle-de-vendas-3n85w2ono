@@ -38,6 +38,9 @@ interface AppContextType {
   settings: AppSettings
   activeTab: TabId
   setActiveTab: (tab: TabId) => void
+  selectedClienteIdFoco?: string | null
+  setSelectedClienteIdFoco: (id: string | null) => void
+  navegarParaCliente: (clienteId: string) => void
   activeProduct: ProdutoKit
   setActiveProductId: (id: string) => void
 
@@ -102,6 +105,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [data, setData] = useState<AppData>(() => carregarDados())
   const [audit, setAudit] = useState<AuditEntry[]>(() => carregarAuditoria())
   const [settings, setSettings] = useState<AppSettings>(() => carregarConfiguracoes())
+  const [selectedClienteIdFoco, setSelectedClienteIdFoco] = useState<string | null>(null)
+
+  const navegarParaCliente = (clienteId: string) => {
+    setSelectedClienteIdFoco(clienteId)
+    setSettings((prev) => ({ ...prev, abaAtiva: 'clientes' }))
+  }
 
   // Persistir dados quando mudarem
   useEffect(() => {
@@ -934,6 +943,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         settings,
         activeTab,
         setActiveTab,
+        selectedClienteIdFoco,
+        setSelectedClienteIdFoco,
+        navegarParaCliente,
         activeProduct,
         setActiveProductId,
         updateProdutoLote,

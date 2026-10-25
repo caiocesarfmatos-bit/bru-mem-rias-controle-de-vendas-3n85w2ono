@@ -18,7 +18,7 @@ interface SeletorPeriodoProps {
 
 export const OPCOES_PERIODO: { id: PeriodoRelatorioTipo; label: string }[] = [
   { id: 'hoje', label: 'Hoje' },
-  { id: '7d', label: 'Últimos 7 dias' },
+  { id: '7d', label: 'Última semana' },
   { id: 'mes_atual', label: 'Este mês' },
   { id: 'mes_anterior', label: 'Mês passado' },
   { id: 'ano_atual', label: 'Este ano' },

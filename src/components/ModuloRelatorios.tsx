@@ -307,7 +307,7 @@ export const ModuloRelatorios: React.FC = () => {
       <div className="bg-white rounded-2xl p-5 border border-[#F0E4E0] shadow-soft-pink flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div>
           <span className="text-xs font-bold text-[#FF1493] uppercase tracking-wider block mb-1">
-            Módulo 7 • Inteligência Analítica & Exportação
+            Inteligência Analítica & Exportação
           </span>
           <h2 className="text-2xl font-brand-serif font-bold text-[#4E342E] flex items-center gap-2">
             <BarChart3 className="w-6 h-6 text-[#FF1493]" />
@@ -749,12 +749,12 @@ export const ModuloRelatorios: React.FC = () => {
       </div>
 
       {/* GRID DE ANÁLISES COMPLEMENTARES:
-          1. ANÁLISE DE MARGEM & FAIXAS DE PREÇO 
-          2. VENDAS POR CANAL DE DIVULGAÇÃO 
-          3. PREVISÃO & PROJEÇÃO SIMPLES 
+          ANÁLISE DE MARGEM & FAIXAS DE PREÇO 
+          VENDAS POR CANAL DE DIVULGAÇÃO 
+          PREVISÃO & PROJEÇÃO SIMPLES 
       */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* 1. ANÁLISE DE MARGEM & FAIXAS OFICIAIS */}
+        {/* ANÁLISE DE MARGEM & FAIXAS OFICIAIS */}
         <div className="bg-white rounded-2xl p-5 border border-[#F0E4E0] shadow-soft-pink space-y-3">
           <div className="border-b border-[#F0E4E0] pb-2">
             <h3 className="text-sm font-bold text-[#4E342E] flex items-center gap-1.5">

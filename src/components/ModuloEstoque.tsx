@@ -458,7 +458,7 @@ export const ModuloEstoque: React.FC = () => {
       <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#F0E4E0] shadow-soft-pink flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <span className="text-xs font-bold text-[#FF1493] uppercase tracking-wider block mb-1">
-            Módulo 6 • Controle de Estoque
+            Controle de Estoque
           </span>
           <div className="flex items-center gap-2">
             <h2 className="text-xl sm:text-2xl font-brand-serif font-bold text-[#4E342E]">

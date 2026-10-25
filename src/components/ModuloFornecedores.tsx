@@ -190,14 +190,13 @@ export const ModuloFornecedores: React.FC = () => {
       <div className="bg-white rounded-2xl p-5 border border-[#F0E4E0] shadow-soft-pink flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <span className="text-xs font-bold text-[#FF1493] uppercase tracking-wider block mb-1">
-            Módulo 4 • Compras & Suprimentos
+            Compras & Suprimentos
           </span>
           <h2 className="text-2xl font-brand-serif font-bold text-[#4E342E]">
             Gestão de Fornecedores dos Ímãs
           </h2>
           <p className="text-xs text-[#4E342E]/70 mt-1">
-            Exibição permanente de 3 opções por insumo, priorizando Recreio dos Bandeirantes, RJ e
-            lojas online.
+            Opções por insumo, priorizando Recreio dos Bandeirantes, RJ e lojas online.
           </p>
         </div>
 
@@ -351,14 +350,12 @@ export const ModuloFornecedores: React.FC = () => {
                     : 'border-[#F0E4E0] hover:border-[#FF1493]/40'
                 }`}
               >
-                {/* Badge Destaque Opção 1, 2 ou 3 */}
+                {/* Badge Destaque Opção */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-[#FF1493] text-white text-[11px] font-bold flex items-center justify-center">
-                      {index + 1}
-                    </span>
+                    <span className="w-2 h-2 rounded-full bg-[#FF1493]" />
                     <span className="text-[11px] font-bold text-[#4E342E]/70 uppercase">
-                      Opção {index + 1}
+                      Fornecedor
                     </span>
                   </div>
 

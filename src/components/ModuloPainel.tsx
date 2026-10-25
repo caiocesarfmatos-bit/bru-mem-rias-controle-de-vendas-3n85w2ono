@@ -154,28 +154,28 @@ export const ModuloPainel: React.FC = () => {
 
     const estagios = [
       {
-        nome: '1. Orçamento',
+        nome: 'Orçamento',
         chave: 'Orçamento',
         count: orcamentos,
         cor: '#FB8C00', // Laranja
         pct: Math.round((orcamentos / baseFunil) * 100),
       },
       {
-        nome: '2. Confirmado',
+        nome: 'Confirmado',
         chave: 'Confirmado',
         count: confirmados,
         cor: '#8E24AA', // Roxo
         pct: Math.round((confirmados / baseFunil) * 100),
       },
       {
-        nome: '3. Produzindo',
+        nome: 'Produzindo',
         chave: 'Produzindo',
         count: produzindo,
         cor: '#0288D1', // Azul
         pct: Math.round((produzindo / baseFunil) * 100),
       },
       {
-        nome: '4. Enviado',
+        nome: 'Enviado',
         chave: 'Enviado',
         count: enviados,
         cor: '#FF1493', // Rosa choque
@@ -533,9 +533,7 @@ export const ModuloPainel: React.FC = () => {
                     className="p-2 rounded-xl bg-[#F5EFEA]/60 flex items-center justify-between gap-2 text-xs"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="w-5 h-5 rounded-full bg-[#FF1493] text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">
-                        {idx + 1}
-                      </span>
+                      <span className="w-2 h-2 rounded-full bg-[#FF1493] flex-shrink-0" />
                       <div className="min-w-0">
                         <p className="font-bold text-[#4E342E] truncate">{prod.produtoNome}</p>
                         <p className="text-[10px] text-gray-500">
@@ -741,9 +739,10 @@ export const ModuloPainel: React.FC = () => {
                   <div key={prod.produtoId} className="space-y-1">
                     <div className="flex justify-between text-xs">
                       <span className="font-bold text-[#4E342E] flex items-center gap-1.5">
-                        <span className="text-xs font-black" style={{ color: cor }}>
-                          #{idx + 1}
-                        </span>
+                        <span
+                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: cor }}
+                        />
                         <span>{prod.produtoNome}</span>
                         <span className="text-[11px] text-gray-400 font-normal">
                           ({prod.quantidade} un • Margem{' '}

@@ -183,7 +183,7 @@ export const ModuloCustos: React.FC = () => {
       <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#F0E4E0] shadow-soft-pink flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <span className="text-xs font-bold text-[#FF1493] uppercase tracking-wider block mb-1">
-            Módulo 1 • Controle de Custos
+            Controle de Custos
           </span>
           <div className="flex items-center gap-2">
             <h2 className="text-xl sm:text-2xl font-brand-serif font-bold text-[#4E342E]">
@@ -210,7 +210,7 @@ export const ModuloCustos: React.FC = () => {
             )}
           </div>
           <p className="text-xs text-[#4E342E]/70 mt-0.5">
-            10 insumos base do ímã 5x5 cm • Adicione compras reais e gastos extras
+            Insumos base do ímã 5x5 cm • Adicione compras reais e gastos extras
           </p>
         </div>
 
@@ -323,9 +323,7 @@ export const ModuloCustos: React.FC = () => {
                 {/* Cabeçalho do Card */}
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-[#FFF0F8] text-[#FF1493] text-xs font-bold flex items-center justify-center">
-                      {index + 1}
-                    </span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#FF1493] flex-shrink-0" />
                     <div>
                       <h3 className="text-base font-bold text-[#4E342E]">{item.nome}</h3>
                       <span className="text-[11px] text-[#4E342E]/70">

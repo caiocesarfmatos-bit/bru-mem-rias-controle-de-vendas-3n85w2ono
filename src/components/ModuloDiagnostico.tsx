@@ -465,7 +465,7 @@ export const ModuloDiagnostico: React.FC = () => {
       <div className="bg-white rounded-2xl p-5 border border-[#F0E4E0] shadow-soft-pink flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="text-xs font-bold text-[#FF1493] uppercase tracking-wider block mb-1">
-            Módulo 8 • Auditoria de Sistema
+            Auditoria de Sistema
           </span>
           <h2 className="text-2xl font-brand-serif font-bold text-[#4E342E] flex items-center gap-2">
             <Stethoscope className="w-6 h-6 text-[#FF1493]" />

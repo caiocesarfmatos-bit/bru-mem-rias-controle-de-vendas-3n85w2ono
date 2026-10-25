@@ -323,7 +323,7 @@ export const ModuloClientes: React.FC = () => {
       <div className="bg-white rounded-2xl p-5 border border-[#F0E4E0] shadow-soft-pink flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <span className="text-xs font-bold text-[#FF1493] uppercase tracking-wider block mb-1">
-            Módulo 3 • Gestão de Clientes & CRM
+            Gestão de Clientes & CRM
           </span>
           <h2 className="text-2xl font-brand-serif font-bold text-[#4E342E]">
             Cadastro & Histórico de Clientes
@@ -398,7 +398,7 @@ export const ModuloClientes: React.FC = () => {
             <option value="sem">Sem consentimento</option>
           </select>
 
-          {/* Toggle Clientes Ativos (últimos 90 dias) */}
+          {/* Toggle Clientes Ativos (recente) */}
           <button
             onClick={() => setFilterAtivos90d(!filterAtivos90d)}
             className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
@@ -407,7 +407,7 @@ export const ModuloClientes: React.FC = () => {
                 : 'bg-white text-[#4E342E] border-[#F0E4E0] hover:border-[#FF1493]'
             }`}
           >
-            🔥 Ativos (90d)
+            🔥 Clientes Ativos
           </button>
         </div>
       </div>

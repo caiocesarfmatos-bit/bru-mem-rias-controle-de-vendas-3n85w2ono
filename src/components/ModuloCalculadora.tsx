@@ -158,7 +158,7 @@ export const ModuloCalculadora: React.FC = () => {
     if (!clienteSelecionadoId) {
       toast({
         title: 'Nenhum cliente cadastrado',
-        description: 'Cadastre um cliente primeiro no Módulo 3.',
+        description: 'Cadastre um cliente primeiro no módulo Clientes.',
         variant: 'destructive',
       })
       return
@@ -206,7 +206,7 @@ export const ModuloCalculadora: React.FC = () => {
       <div className="bg-white rounded-2xl p-5 border border-[#F0E4E0] shadow-soft-pink flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="text-xs font-bold text-[#FF1493] uppercase tracking-wider block mb-1">
-            Módulo 2 • Precificação & Rentabilidade
+            Precificação & Rentabilidade
           </span>
           <h2 className="text-2xl font-brand-serif font-bold text-[#4E342E]">
             Calculadora Avançada de Ganhos
@@ -287,7 +287,7 @@ export const ModuloCalculadora: React.FC = () => {
             className="p-3 bg-[#FFF0F8] hover:bg-[#FF1493] hover:text-white rounded-xl border border-[#FF1493]/20 text-left transition-all duration-150 group"
           >
             <span className="text-xs font-bold text-[#FF1493] group-hover:text-white block">
-              1. Avulso
+              Avulso
             </span>
             <span className="text-xs font-medium text-[#4E342E]/80 group-hover:text-white">
               2 un × R$ 14,99
@@ -299,7 +299,7 @@ export const ModuloCalculadora: React.FC = () => {
             className="p-3 bg-[#FFF0F8] hover:bg-[#FF1493] hover:text-white rounded-xl border border-[#FF1493]/20 text-left transition-all duration-150 group"
           >
             <span className="text-xs font-bold text-[#FF1493] group-hover:text-white block">
-              2. Kit Lembrança
+              Kit Lembrança
             </span>
             <span className="text-xs font-medium text-[#4E342E]/80 group-hover:text-white">
               3 un × R$ 13,30 (R$ 39,90)
@@ -311,7 +311,7 @@ export const ModuloCalculadora: React.FC = () => {
             className="p-3 bg-[#FFF0F8] hover:bg-[#FF1493] hover:text-white rounded-xl border border-[#FF1493]/20 text-left transition-all duration-150 group"
           >
             <span className="text-xs font-bold text-[#FF1493] group-hover:text-white block">
-              3. Festa Infantil
+              Festa Infantil
             </span>
             <span className="text-xs font-medium text-[#4E342E]/80 group-hover:text-white">
               20 un × R$ 12,50
@@ -323,7 +323,7 @@ export const ModuloCalculadora: React.FC = () => {
             className="p-3 bg-[#FFF0F8] hover:bg-[#FF1493] hover:text-white rounded-xl border border-[#FF1493]/20 text-left transition-all duration-150 group"
           >
             <span className="text-xs font-bold text-[#FF1493] group-hover:text-white block">
-              4. Atacado / Evento
+              Atacado / Evento
             </span>
             <span className="text-xs font-medium text-[#4E342E]/80 group-hover:text-white">
               50 un × R$ 10,50

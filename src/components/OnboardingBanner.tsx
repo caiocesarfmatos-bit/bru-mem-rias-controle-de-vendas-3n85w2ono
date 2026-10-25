@@ -80,11 +80,11 @@ export const OnboardingBanner: React.FC = () => {
           className="cursor-pointer bg-white/80 hover:bg-white p-3 rounded-xl border border-[#F0E4E0] hover:border-[#FF1493] transition-all duration-150 group"
         >
           <div className="text-[#FF1493] font-bold text-xs mb-1 flex items-center justify-between">
-            <span>1. Custos</span>
+            <span>Custos</span>
             <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
           </div>
           <p className="text-[11px] text-[#4E342E]/75 leading-tight">
-            10 insumos base do ímã 5x5, despesas extras e custo exato por unidade.
+            Insumos base do ímã 5x5, despesas extras e custo exato por unidade.
           </p>
         </div>
 
@@ -93,7 +93,7 @@ export const OnboardingBanner: React.FC = () => {
           className="cursor-pointer bg-white/80 hover:bg-white p-3 rounded-xl border border-[#F0E4E0] hover:border-[#FF1493] transition-all duration-150 group"
         >
           <div className="text-[#FF1493] font-bold text-xs mb-1 flex items-center justify-between">
-            <span>2. Calculadora</span>
+            <span>Calculadora</span>
             <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
           </div>
           <p className="text-[11px] text-[#4E342E]/75 leading-tight">
@@ -106,7 +106,7 @@ export const OnboardingBanner: React.FC = () => {
           className="cursor-pointer bg-white/80 hover:bg-white p-3 rounded-xl border border-[#F0E4E0] hover:border-[#FF1493] transition-all duration-150 group"
         >
           <div className="text-[#FF1493] font-bold text-xs mb-1 flex items-center justify-between">
-            <span>3. Clientes</span>
+            <span>Clientes</span>
             <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
           </div>
           <p className="text-[11px] text-[#4E342E]/75 leading-tight">
@@ -119,11 +119,11 @@ export const OnboardingBanner: React.FC = () => {
           className="cursor-pointer bg-white/80 hover:bg-white p-3 rounded-xl border border-[#F0E4E0] hover:border-[#FF1493] transition-all duration-150 group"
         >
           <div className="text-[#FF1493] font-bold text-xs mb-1 flex items-center justify-between">
-            <span>4. Fornecedores</span>
+            <span>Fornecedores</span>
             <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
           </div>
           <p className="text-[11px] text-[#4E342E]/75 leading-tight">
-            Sempre 3 opções (Recreio, Barra e online), menor preço e avaliações.
+            Opções no Recreio, Barra e online, menor preço e avaliações.
           </p>
         </div>
 

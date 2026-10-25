@@ -149,7 +149,7 @@ export function obterIntervalosPeriodo(
     const inicio = new Date(agora)
     inicio.setDate(agora.getDate() - 6)
     atual = { inicio: paraYmd(inicio), fim: hojeYmd }
-    label = 'Últimos 7 dias'
+    label = 'Última semana'
   } else if (tipo === 'mes_atual') {
     const inicio = new Date(agora.getFullYear(), agora.getMonth(), 1)
     const fim = new Date(agora.getFullYear(), agora.getMonth() + 1, 0)

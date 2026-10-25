@@ -73,19 +73,16 @@ export const Header: React.FC = () => {
       id: 'clientes',
       label: 'Clientes',
       icon: <Users className="w-4 h-4" />,
-      badge: data.clientes.length,
     },
     {
       id: 'fornecedores',
       label: 'Fornecedores',
       icon: <Truck className="w-4 h-4" />,
-      badge: data.fornecedores.length,
     },
     {
       id: 'estoque',
       label: 'Estoque',
       icon: <Boxes className="w-4 h-4" />,
-      badge: itensEstoqueBaixoCount > 0 ? itensEstoqueBaixoCount : estoqueInsumos.length,
       badgeAlert: itensEstoqueBaixoCount > 0,
     },
     { id: 'painel', label: 'Painel', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -295,19 +292,11 @@ export const Header: React.FC = () => {
             >
               {tab.icon}
               <span>{tab.label}</span>
-              {typeof tab.badge === 'number' && (
+              {tab.badgeAlert && (
                 <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                    tab.badgeAlert
-                      ? 'bg-[#FF1493] text-white animate-pulse'
-                      : isActive
-                        ? 'bg-[#FF1493] text-white'
-                        : 'bg-[#4E342E]/10 text-[#4E342E]'
-                  }`}
-                  title={tab.badgeAlert ? `${tab.badge} itens com estoque baixo!` : undefined}
-                >
-                  {tab.badge}
-                </span>
+                  className="w-2 h-2 rounded-full bg-[#FF1493] animate-pulse"
+                  title="Itens com estoque baixo!"
+                />
               )}
             </button>
           )

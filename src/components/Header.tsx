@@ -84,24 +84,67 @@ export const Header: React.FC = () => {
   }
 
   const handleShareApp = async () => {
+    const appUrl =
+      typeof window !== 'undefined'
+        ? window.location.origin
+        : 'https://bru-memorias-controle-de-vendas-e3d25.goskip.app'
     const shareData = {
-      title: 'Bru Memórias | Ímãs Personalizados 5x5',
-      text: 'Bru Memórias - Ímãs personalizados artesanais 5x5 cm direto do Recreio dos Bandeirantes, RJ.',
-      url: window.location.href,
+      title: 'Bru Memórias | Controle de Vendas',
+      text: 'Controle de vendas da Bru Memórias Personalizados — ímãs 5x5 💖',
+      url: appUrl,
     }
-    if (navigator.share) {
+
+    const copyFallback = async () => {
+      let copied = false
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(appUrl)
+          copied = true
+        } catch {
+          copied = false
+        }
+      }
+
+      if (!copied) {
+        try {
+          const textArea = document.createElement('textarea')
+          textArea.value = appUrl
+          textArea.style.position = 'fixed'
+          textArea.style.opacity = '0'
+          document.body.appendChild(textArea)
+          textArea.focus()
+          textArea.select()
+          copied = document.execCommand('copy')
+          document.body.removeChild(textArea)
+        } catch {
+          copied = false
+        }
+      }
+
+      toast({
+        title: 'Link copiado! Envie para quem quiser usar o app 💖',
+        description: appUrl,
+      })
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share(shareData)
-        toast({ title: 'Compartilhado com sucesso! ✨' })
-      } catch {
-        // Usuário cancelou ou navegador não permitiu
+      } catch (err: unknown) {
+        // Tratar cancelamento sem mostrar erro
+        if (
+          err instanceof Error &&
+          (err.name === 'AbortError' ||
+            err.message.includes('canceled') ||
+            err.message.includes('aborted'))
+        ) {
+          return
+        }
+        // Se falhou por permissão ou outro motivo, recorrer à cópia
+        await copyFallback()
       }
     } else {
-      await navigator.clipboard.writeText(window.location.href)
-      toast({
-        title: 'Link copiado!',
-        description: 'Link do Bru Memórias copiado para a área de transferência.',
-      })
+      await copyFallback()
     }
   }
 
@@ -168,28 +211,27 @@ export const Header: React.FC = () => {
         <BrandLogo />
 
         {/* Botões de Ação Rápida */}
-        <div className="flex items-center gap-2">
-          {/* Compartilhar */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Compartilhar app */}
           <button
             onClick={handleShareApp}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#4E342E] bg-[#F5EFEA] hover:bg-[#FF1493]/10 hover:text-[#FF1493] rounded-full transition-colors"
-            title="Compartilhar aplicativo"
-            aria-label="Compartilhar aplicativo"
+            className="inline-flex items-center justify-center gap-1.5 min-w-[44px] min-h-[44px] px-3 sm:px-3.5 py-2 text-xs font-semibold text-[#FF1493] bg-[#FFF0F8] border border-[#FF1493]/25 hover:bg-[#FF1493] hover:text-white rounded-full transition-all duration-150 shadow-xs active:scale-95 select-none"
+            title="Compartilhar app"
+            aria-label="Compartilhar app"
           >
-            <Share2 className="w-3.5 h-3.5" />
-            <span>Divulgar</span>
+            <Share2 className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline">Compartilhar app</span>
           </button>
 
           {/* Backup / Exportar Dados */}
           <button
             onClick={() => setShowBackupModal(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-[#FF1493] bg-[#FFF0F8] border border-[#FF1493]/20 hover:bg-[#FF1493] hover:text-white rounded-full transition-all duration-150 shadow-sm"
+            className="inline-flex items-center justify-center gap-1.5 min-w-[44px] min-h-[44px] px-3 sm:px-3.5 py-2 text-xs font-semibold text-[#4E342E] bg-[#F5EFEA] border border-[#4E342E]/10 hover:bg-[#FF1493]/10 hover:text-[#FF1493] hover:border-[#FF1493]/20 rounded-full transition-all duration-150 shadow-xs active:scale-95"
             title="Exportar, importar ou fazer backup dos dados"
             aria-label="Backup e dados"
           >
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden xs:inline">Backup & Dados</span>
-            <span className="xs:hidden">Dados</span>
+            <Download className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline">Backup & Dados</span>
           </button>
         </div>
       </div>

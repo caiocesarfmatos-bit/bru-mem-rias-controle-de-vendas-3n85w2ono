@@ -479,16 +479,47 @@ routerAdd('POST', '/backend/v1/sistema/usuarios/criar-com-codigo', (c) => {
     novoUser.set('tentativas_falhas', 0)
     $app.save(novoUser)
 
+    const idLimpo = String(novoUser.id || novoUser.getString('id') || '')
+    const emailLimpo = String(novoUser.getString('email') || email || '')
+      .trim()
+      .toLowerCase()
+    const nameLimpo = String(novoUser.getString('name') || name || '')
+    const perfilLimpo = String(novoUser.getString('perfil') || perfilNovo || 'vendedor')
+    const ativoLimpo = Boolean(novoUser.getBool('ativo'))
+    const createdLimpo = String(novoUser.getString('created') || new Date().toISOString())
+
+    try {
+      const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
+      const rec = new Record(auditCol)
+      rec.set('entidade', 'USUARIOS')
+      rec.set('identificador_registro', idLimpo)
+      rec.set('campo', 'CRIACAO_USUARIO')
+      rec.set(
+        'valor_novo',
+        JSON.stringify({
+          evento: 'USUARIO_CRIADO',
+          email: emailLimpo,
+          name: nameLimpo,
+          perfil: perfilLimpo,
+          ativo: ativoLimpo,
+        }),
+      )
+      rec.set('usuario', String(auth.id || 'sistema'))
+      rec.set('data_hora', new Date().toISOString())
+      rec.set('origem', 'auth_codigo_restrito_hook')
+      $app.save(rec)
+    } catch (_) {}
+
     return c.json(200, {
       correlationId: correlationId,
       sucesso: true,
       usuario: {
-        id: novoUser.id,
-        email: novoUser.email,
-        name: novoUser.getString('name'),
-        perfil: novoUser.getString('perfil'),
-        ativo: novoUser.getBool('ativo'),
-        created: novoUser.getString('created'),
+        id: idLimpo,
+        email: emailLimpo,
+        name: nameLimpo,
+        perfil: perfilLimpo,
+        ativo: ativoLimpo,
+        created: createdLimpo,
       },
     })
   } catch (errCreate) {
@@ -1391,8 +1422,11 @@ routerAdd('POST', '/backend/v1/sistema/exportar-backup', (c) => {
     ambiente: 'Skip Cloud PocketBase v0.36',
     geradoEm: agoraIso,
     solicitadoPor: {
-      id: auth.id,
-      perfil: perfil,
+      id: String(auth.id || auth.getString('id') || ''),
+      email: String(auth.getString('email') || '')
+        .trim()
+        .toLowerCase(),
+      perfil: String(perfil || auth.getString('perfil') || ''),
     },
     resumo: {
       totalColecoes: colecoes.length,

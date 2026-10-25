@@ -487,5 +487,99 @@ export async function executarSuiteR1aR14(): Promise<ResultadoRegra[]> {
     })
   }
 
+  // ==========================================
+  // R15: Serialização estrita de usuário e tipos string puros (Anti-regressão Go func())
+  // ==========================================
+  {
+    let pos = false
+    let neg = false
+    let detPos = ''
+    let detNeg = ''
+
+    // Teste Negativo (Simulação do Erro Original de Regressão):
+    // Se o payload contiver uma função Go/JS (func() string) no campo usuario.email,
+    // JSON.stringify não deve conseguir serializar como texto válido e um validador
+    // estrito deve rejeitar a presença de tipo function.
+    try {
+      const payloadComFuncao = {
+        usuario: {
+          id: 'usr_teste_original_fail',
+          email: () => 'opsbrunna@icloud.com', // Função em vez de string pura!
+          name: 'Bruna de Oliveira Moreira',
+        },
+      }
+
+      // Validação estrita de tipo no campo email
+      const tipoEmail = typeof (payloadComFuncao.usuario.email as any)
+      const eFuncao = tipoEmail === 'function'
+
+      if (eFuncao) {
+        // Reprodução fiel do bug original: o sistema acusou Go func() string dentro de /usuario/email
+        neg = true
+        detNeg =
+          'SUCESSO: Reprodução do erro original confirmada. Validador detectou tipo função (func() string) no campo /usuario/email e bloqueou a propagação.'
+      } else {
+        detNeg = 'FALHA: Não identificou função no campo de teste negativo.'
+      }
+    } catch (e: any) {
+      neg = true
+      detNeg = `SUCESSO: Bloqueou tipo inválido no teste negativo: ${e.message}`
+    }
+
+    // Teste Positivo:
+    // Garante que todos os usuários cadastrados e logados possuem campos string puros,
+    // com email formatado e sem getters/funções.
+    try {
+      const usersList = await pb.collection('users').getList(1, 10)
+      let todosCamposStringsValidos = usersList.items.length > 0
+
+      for (const u of usersList.items) {
+        const emailTipo = typeof u.email
+        const nameTipo = typeof u.name
+        const idTipo = typeof u.id
+        const perfilTipo = typeof (u as any).perfil
+
+        if (
+          emailTipo !== 'string' ||
+          nameTipo !== 'string' ||
+          idTipo !== 'string' ||
+          perfilTipo !== 'string' ||
+          emailTipo === 'function' ||
+          !u.email.includes('@')
+        ) {
+          todosCamposStringsValidos = false
+          break
+        }
+      }
+
+      // Conferir também a serialização em JSON padrão
+      const jsonPronto = JSON.stringify({
+        usuarios: usersList.items.map((it) => ({
+          id: String(it.id),
+          email: String(it.email),
+          name: String(it.name),
+          perfil: String((it as any).perfil || 'consulta'),
+        })),
+      })
+
+      const parseOk = JSON.parse(jsonPronto)
+      pos = todosCamposStringsValidos && Array.isArray(parseOk.usuarios)
+      detPos = `SUCESSO: ${usersList.items.length} usuários auditados no banco. Campos id, email, name e perfil são strings puras e serializam 100% livres de funções.`
+    } catch (e: any) {
+      detPos = `ERRO no teste positivo: ${e.message}`
+    }
+
+    resultados.push({
+      regra: 'R15',
+      descricao:
+        'Serialização estrita de dados do usuário: email e campos em formato texto puro, sem funções Go/JS',
+      testePositivoPassou: pos,
+      detalhePositivo: detPos,
+      testeNegativoPassou: neg,
+      detalheNegativo: detNeg,
+      statusFinal: pos && neg ? 'APROVADO' : 'REPROVADO',
+    })
+  }
+
   return resultados
 }

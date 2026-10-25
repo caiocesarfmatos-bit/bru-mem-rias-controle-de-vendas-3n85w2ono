@@ -50,19 +50,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [usuario, setUsuario] = useState<UsuarioSistema | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
+  const extrairUsuarioSeguro = (m: any): UsuarioSistema | null => {
+    if (!m) return null
+    const emailLimpo =
+      typeof m.email === 'function'
+        ? ''
+        : String(m.email || '')
+            .trim()
+            .toLowerCase()
+    const nameLimpo = typeof m.name === 'function' ? '' : String(m.name || m.email || '')
+    const idLimpo = typeof m.id === 'function' ? '' : String(m.id || '')
+    const perfilLimpo = (typeof m.perfil === 'string' ? m.perfil : 'administrador') as PerfilUsuario
+
+    return {
+      id: idLimpo,
+      email: emailLimpo,
+      name: nameLimpo || emailLimpo,
+      perfil: perfilLimpo,
+      ativo: m.ativo !== false,
+      created: typeof m.created === 'string' ? m.created : new Date().toISOString(),
+      updated: typeof m.updated === 'string' ? m.updated : new Date().toISOString(),
+    }
+  }
+
   // Iniciar checando sessão salva no PocketBase
   useEffect(() => {
     if (pb.authStore.isValid && pb.authStore.model) {
-      const m = pb.authStore.model
-      setUsuario({
-        id: m.id,
-        email: m.email,
-        name: m.name || m.email,
-        perfil: (m.perfil || 'administrador') as PerfilUsuario,
-        ativo: m.ativo !== false,
-        created: m.created,
-        updated: m.updated,
-      })
+      setUsuario(extrairUsuarioSeguro(pb.authStore.model))
     } else {
       setUsuario(null)
     }
@@ -71,16 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Ouvir alterações do authStore
     const unsubscribe = pb.authStore.onChange(() => {
       if (pb.authStore.isValid && pb.authStore.model) {
-        const m = pb.authStore.model
-        setUsuario({
-          id: m.id,
-          email: m.email,
-          name: m.name || m.email,
-          perfil: (m.perfil || 'administrador') as PerfilUsuario,
-          ativo: m.ativo !== false,
-          created: m.created,
-          updated: m.updated,
-        })
+        setUsuario(extrairUsuarioSeguro(pb.authStore.model))
       } else {
         setUsuario(null)
       }

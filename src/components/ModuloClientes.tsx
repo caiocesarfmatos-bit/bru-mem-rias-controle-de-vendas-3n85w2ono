@@ -42,6 +42,7 @@ export const ModuloClientes: React.FC = () => {
     addCliente,
     updateCliente,
     deleteCliente,
+    excluirDadosTitular,
     addPedidoCliente,
     updatePedidoStatus,
     deletePedidoCliente,
@@ -79,6 +80,9 @@ export const ModuloClientes: React.FC = () => {
 
   // Modal de Exclusão com confirmação
   const [deleteTargetCliente, setDeleteTargetCliente] = useState<Cliente | null>(null)
+  // Modal de Exclusão LGPD de dados da titular
+  const [deleteTitularTargetCliente, setDeleteTitularTargetCliente] = useState<Cliente | null>(null)
+  const [confirmTitularText, setConfirmTitularText] = useState('')
 
   // Formulário de Cliente (com validação estrita e LGPD obrigatório)
   const [nome, setNome] = useState('')
@@ -240,7 +244,7 @@ export const ModuloClientes: React.FC = () => {
     setShowAddEditModal(false)
   }
 
-  // Excluir cliente
+  // Excluir cliente simples
   const handleConfirmDelete = () => {
     if (!deleteTargetCliente) return
     deleteCliente(deleteTargetCliente.id)
@@ -249,6 +253,29 @@ export const ModuloClientes: React.FC = () => {
     }
     setDeleteTargetCliente(null)
     toast({ title: 'Cliente excluída.' })
+  }
+
+  // LGPD: Exclusão definitiva dos dados da titular
+  const handleConfirmDeleteTitular = () => {
+    if (!deleteTitularTargetCliente) return
+    if (confirmTitularText.trim().toUpperCase() !== 'EXCLUIR') {
+      toast({
+        title: 'Confirmação incorreta',
+        description: 'Digite exatamente "EXCLUIR" para prosseguir.',
+        variant: 'destructive',
+      })
+      return
+    }
+    excluirDadosTitular(deleteTitularTargetCliente.id)
+    if (selectedClienteHistory?.id === deleteTitularTargetCliente.id) {
+      setSelectedClienteHistory(null)
+    }
+    setDeleteTitularTargetCliente(null)
+    setConfirmTitularText('')
+    toast({
+      title: 'Dados da titular apagados! 🔒',
+      description: 'Todos os registros pessoais e pedidos foram definitivamente excluídos (LGPD).',
+    })
   }
 
   // Adicionar compra manual no histórico do cliente
@@ -464,6 +491,29 @@ export const ModuloClientes: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Informação do Consentimento LGPD com data/hora */}
+                  <div className="mb-2 text-[11px] flex items-center gap-1.5 text-[#4E342E]/80">
+                    <span className="font-semibold text-gray-500">Consentimento LGPD:</span>
+                    {cli.consentimentoLgpd ? (
+                      <span className="text-emerald-700 font-bold flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3 text-emerald-600 inline" />
+                        <span>Autorizado</span>
+                        {cli.dataConsentimentoLgpd ? (
+                          <span className="text-[10px] text-gray-500 font-normal">
+                            ({new Date(cli.dataConsentimentoLgpd).toLocaleDateString('pt-BR')}{' '}
+                            {new Date(cli.dataConsentimentoLgpd).toLocaleTimeString('pt-BR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                            )
+                          </span>
+                        ) : null}
+                      </span>
+                    ) : (
+                      <span className="text-red-600 font-bold">Não autorizado</span>
+                    )}
+                  </div>
+
                   {/* WhatsApp e Redes */}
                   <div className="flex flex-wrap items-center gap-2 mb-3">
                     {cli.telefoneWhatsapp ? (
@@ -557,10 +607,34 @@ export const ModuloClientes: React.FC = () => {
                 <p className="text-xs text-[#4E342E]/70">
                   {selectedClienteHistory.telefoneWhatsapp} • Cadastrada em{' '}
                   {formatarDataPtBR(selectedClienteHistory.dataCadastro)}
+                  {selectedClienteHistory.dataConsentimentoLgpd && (
+                    <span className="block mt-0.5 text-emerald-700 font-semibold">
+                      Consentimento LGPD:{' '}
+                      {new Date(selectedClienteHistory.dataConsentimentoLgpd).toLocaleDateString(
+                        'pt-BR',
+                      )}{' '}
+                      às{' '}
+                      {new Date(selectedClienteHistory.dataConsentimentoLgpd).toLocaleTimeString(
+                        'pt-BR',
+                        { hour: '2-digit', minute: '2-digit' },
+                      )}
+                    </span>
+                  )}
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setDeleteTitularTargetCliente(selectedClienteHistory)
+                    setConfirmTitularText('')
+                  }}
+                  className="px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-600 hover:text-white border border-red-200 rounded-full transition-colors flex items-center gap-1"
+                  title="Excluir definitivamente todos os dados da titular (LGPD)"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Excluir dados da titular</span>
+                </button>
                 <button
                   onClick={() => setShowManualOrderModal(true)}
                   className="px-3 py-1.5 text-xs font-bold text-white bg-[#FF1493] hover:bg-[#E01284] rounded-full shadow-sm flex items-center gap-1"
@@ -623,15 +697,27 @@ export const ModuloClientes: React.FC = () => {
                             ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                             : p.status === 'Pago'
                               ? 'bg-blue-100 text-blue-800 border-blue-300'
-                              : p.status === 'Fechado'
-                                ? 'bg-purple-100 text-purple-800 border-purple-300'
-                                : 'bg-amber-100 text-amber-800 border-amber-300'
+                              : p.status === 'Produzindo'
+                                ? 'bg-cyan-100 text-cyan-800 border-cyan-300'
+                                : p.status === 'Enviado'
+                                  ? 'bg-indigo-100 text-indigo-800 border-indigo-300'
+                                  : p.status === 'Confirmado'
+                                    ? 'bg-violet-100 text-violet-800 border-violet-300'
+                                    : p.status === 'Fechado'
+                                      ? 'bg-purple-100 text-purple-800 border-purple-300'
+                                      : p.status === 'Cancelado'
+                                        ? 'bg-red-100 text-red-800 border-red-300'
+                                        : 'bg-amber-100 text-amber-800 border-amber-300'
                         }`}
                       >
                         <option value="Orçamento">Orçamento</option>
+                        <option value="Confirmado">Confirmado</option>
                         <option value="Fechado">Fechado</option>
                         <option value="Pago">Pago</option>
+                        <option value="Produzindo">Produzindo</option>
+                        <option value="Enviado">Enviado</option>
                         <option value="Entregue">Entregue</option>
+                        <option value="Cancelado">Cancelado</option>
                       </select>
                     </div>
 
@@ -742,10 +828,14 @@ export const ModuloClientes: React.FC = () => {
                     className="w-full p-2 border rounded-lg font-medium"
                   >
                     <option value="Orçamento">Orçamento</option>
+                    <option value="Confirmado">Confirmado</option>
                     <option value="Fechado">Fechado</option>
                     <option value="Pago">Pago</option>
+                    <option value="Produzindo">Produzindo</option>
+                    <option value="Enviado">Enviado</option>
                     <option value="Entregue">Entregue</option>
-                  </select>
+                    <option value="Cancelado">Cancelado</option>
+                  </select>{' '}
                 </div>
                 <div>
                   <label className="block font-bold mb-1">Data</label>
@@ -990,7 +1080,74 @@ export const ModuloClientes: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Confirmação de Exclusão de Cliente */}
+      {/* Modal Confirmação de Exclusão de Dados da Titular (LGPD) */}
+      {deleteTitularTargetCliente && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border-2 border-red-400">
+            <div className="flex items-center gap-2 text-red-600 mb-2">
+              <AlertCircle className="w-6 h-6" />
+              <h3 className="text-base font-bold font-brand-serif text-red-600">
+                Excluir dados da titular (Direito LGPD)
+              </h3>
+            </div>
+            <p className="text-xs text-[#4E342E]/80 mb-3 leading-relaxed">
+              Você está exercendo a exclusão definitiva dos dados de{' '}
+              <strong>{deleteTitularTargetCliente.nome}</strong>.
+            </p>
+            <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-xs text-red-800 space-y-1 mb-4">
+              <p className="font-bold">Atenção às consequências desta ação:</p>
+              <ul className="list-disc list-inside space-y-0.5 text-[11px]">
+                <li>O cadastro da cliente será completamente apagado do navegador.</li>
+                <li>
+                  Todos os <strong>{deleteTitularTargetCliente.pedidos.length} pedido(s)</strong>{' '}
+                  vinculados serão excluídos permanentemente.
+                </li>
+                <li>
+                  Um registro imutável será feito na trilha de auditoria certificando a exclusão
+                  (sem guardar os dados pessoais apagados).
+                </li>
+              </ul>
+            </div>
+            <div className="mb-4">
+              <label className="block text-xs font-bold text-[#4E342E] mb-1">
+                Para confirmar a exclusão da titular, digite{' '}
+                <span className="text-red-600">EXCLUIR</span>:
+              </label>
+              <input
+                type="text"
+                value={confirmTitularText}
+                onChange={(e) => setConfirmTitularText(e.target.value)}
+                placeholder="EXCLUIR"
+                className="w-full px-3 py-2 text-sm border rounded-lg uppercase tracking-wider font-mono focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setDeleteTitularTargetCliente(null)
+                  setConfirmTitularText('')
+                }}
+                className="px-4 py-2 text-xs font-semibold text-[#4E342E] bg-gray-100 rounded-full"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmDeleteTitular}
+                disabled={confirmTitularText.trim().toUpperCase() !== 'EXCLUIR'}
+                className="px-4 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-full shadow-sm"
+              >
+                Excluir definitivamente (LGPD)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmação de Exclusão Simples de Cliente */}
       {deleteTargetCliente && (
         <div
           className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"

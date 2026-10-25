@@ -33,7 +33,7 @@ import {
   ESTOQUE_PADRAO,
   METAS_PADRAO,
 } from '@/lib/storage'
-import { sanitizarTexto } from '@/lib/formatters'
+import { sanitizarTexto, formatarDataHoraPtBR, formatarMoeda } from '@/lib/formatters'
 
 interface AppContextType {
   data: AppData
@@ -79,6 +79,8 @@ interface AppContextType {
   addCliente: (cliente: Omit<Cliente, 'id' | 'pedidos' | 'dataCadastro'>) => Cliente
   updateCliente: (id: string, cliente: Partial<Cliente>) => void
   deleteCliente: (id: string) => void
+  excluirDadosTitular: (id: string) => void
+  apagarTodosOsDadosLocais: () => void
   addPedidoCliente: (
     clienteId: string,
     pedido: Omit<PedidoCliente, 'id' | 'criadoEm' | 'clienteId' | 'clienteNome'>,
@@ -385,6 +387,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       tiktok: sanitizarTexto(c.tiktok),
       outrosCanais: sanitizarTexto(c.outrosCanais),
       consentimentoLgpd: Boolean(c.consentimentoLgpd),
+      dataConsentimentoLgpd: c.consentimentoLgpd ? new Date().toISOString() : undefined,
       dataCadastro: new Date().toISOString().split('T')[0],
       pedidos: [],
     }
@@ -394,6 +397,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clientes: [novo, ...prev.clientes],
     }))
     logAudit('Clientes', 'Cliente cadastrado', `Cliente "${novo.nome}" cadastrado com sucesso.`)
+    if (novo.consentimentoLgpd) {
+      logAudit(
+        'Clientes',
+        'Consentimento LGPD registrado',
+        `Consentimento para receber divulgação registrado em ${formatarDataHoraPtBR(novo.dataConsentimentoLgpd)} para a cliente "${novo.nome}".`,
+      )
+    }
     return novo
   }
 
@@ -402,6 +412,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       clientes: prev.clientes.map((cli) => {
         if (cli.id !== id) return cli
+        const consentimentoAlterou = c.consentimentoLgpd !== undefined
+        const consentiuAgora =
+          consentimentoAlterou && Boolean(c.consentimentoLgpd) && !cli.consentimentoLgpd
+        const nomeAtualizado = c.nome !== undefined ? sanitizarTexto(c.nome) : cli.nome
+        if (consentiuAgora) {
+          logAudit(
+            'Clientes',
+            'Consentimento LGPD registrado',
+            `Consentimento para receber divulgação registrado em ${formatarDataHoraPtBR(new Date().toISOString())} para a cliente "${nomeAtualizado}".`,
+          )
+        }
         return {
           ...cli,
           nome: c.nome !== undefined ? sanitizarTexto(c.nome) : cli.nome,
@@ -422,6 +443,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             c.consentimentoLgpd !== undefined
               ? Boolean(c.consentimentoLgpd)
               : cli.consentimentoLgpd,
+          dataConsentimentoLgpd: consentiuAgora
+            ? new Date().toISOString()
+            : c.consentimentoLgpd === false
+              ? undefined
+              : cli.dataConsentimentoLgpd,
         }
       }),
     }))
@@ -435,6 +461,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clientes: prev.clientes.filter((c) => c.id !== id),
     }))
     logAudit('Clientes', 'Cliente excluído', `Cliente "${nome}" excluído com histórico.`)
+  }
+
+  // LGPD: Exclusão total dos dados da titular (cadastro + pedidos), com log imutável do evento
+  const excluirDadosTitular = (id: string) => {
+    const cli = data.clientes.find((c) => c.id === id)
+    if (!cli) return
+    const totalPedidos = cli.pedidos.length
+    const totalCompras = cli.pedidos.reduce((acc, p) => acc + (p.receita || 0), 0)
+    setData((prev) => ({
+      ...prev,
+      clientes: prev.clientes.filter((c) => c.id !== id),
+    }))
+    // Log imutável registra apenas o fato da exclusão (sem persistir dados apagados)
+    logAudit(
+      'Clientes',
+      'Exclusão de dados da titular (LGPD)',
+      `Solicitação atendida em ${formatarDataHoraPtBR(new Date().toISOString())}: cadastro e ${totalPedidos} pedido(s) registrados (total de ${formatarMoeda(totalCompras)}) foram definitivamente apagados do armazenamento local. Conteúdo apagado não é armazenado, apenas o registro do evento.`,
+    )
+  }
+
+  // LGPD: Apagar TODOS os dados locais do usuário (cadastro, pedidos, custos, estoque, metas e auditoria)
+  const apagarTodosOsDadosLocais = () => {
+    setData({
+      produtos: [],
+      clientes: [],
+      fornecedores: [],
+      estoque: ESTOQUE_PADRAO,
+      metasVendas: [],
+      version: 1,
+    })
+    setAudit([])
+    salvarAuditoria([])
+    setSettings((prev) => ({ ...SETTINGS_PADRAO, abaAtiva: prev.abaAtiva }))
+    // Log pós-apagamento: registra que a exclusão aconteceu (auditoria reiniciada)
+    registrarAuditoria(
+      'Sistema',
+      'Exclusão total de dados (LGPD)',
+      `Todos os dados locais do aplicativo foram definitivamente apagados em ${formatarDataHoraPtBR(new Date().toISOString())} a pedido do usuário. Nenhum conteúdo apagado é retido; este é o único registro do evento.`,
+    )
+    setAudit(carregarAuditoria())
   }
 
   const addPedidoCliente = (
@@ -1107,6 +1173,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addCliente,
         updateCliente,
         deleteCliente,
+        excluirDadosTitular,
+        apagarTodosOsDadosLocais,
         addPedidoCliente,
         updatePedidoStatus,
         deletePedidoCliente,

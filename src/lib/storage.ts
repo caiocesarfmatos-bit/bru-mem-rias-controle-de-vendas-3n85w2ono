@@ -449,6 +449,7 @@ export const CLIENTES_PADRAO: Cliente[] = [
     tiktok: '@camila_recreio',
     outrosCanais: 'Indicação da amiga Paula',
     consentimentoLgpd: true,
+    dataConsentimentoLgpd: '2025-01-15T10:00:00.000Z',
     dataCadastro: '2025-01-15',
     pedidos: [
       {
@@ -488,6 +489,7 @@ export const CLIENTES_PADRAO: Cliente[] = [
     tiktok: '',
     outrosCanais: 'Instagram Direct',
     consentimentoLgpd: true,
+    dataConsentimentoLgpd: '2025-02-01T11:20:00.000Z',
     dataCadastro: '2025-02-01',
     pedidos: [
       {
@@ -527,6 +529,7 @@ export const CLIENTES_PADRAO: Cliente[] = [
     tiktok: '@mariduarte',
     outrosCanais: '',
     consentimentoLgpd: true,
+    dataConsentimentoLgpd: '2025-02-20T14:45:00.000Z',
     dataCadastro: '2025-02-20',
     pedidos: [
       {

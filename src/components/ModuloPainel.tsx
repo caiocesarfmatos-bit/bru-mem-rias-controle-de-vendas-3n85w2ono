@@ -39,6 +39,7 @@ export const ModuloPainel: React.FC = () => {
   const {
     data,
     audit,
+    updatePedidoStatus,
     navegarParaRelatorio,
     navegarParaCliente,
     periodoRelatorioTipo,
@@ -129,47 +130,74 @@ export const ModuloPainel: React.FC = () => {
     return Math.max(...rankingProdutosPeriodo.map((p) => p.receita), 1)
   }, [rankingProdutosPeriodo])
 
-  // DADOS DO FUNIL DE VENDAS NO PERÍODO SELECIONADO
-  // Estágios: Orçamento → Fechado → Pago → Entregue
+  // DADOS DO FUNIL DE VENDAS NO PERÍODO SELECIONADO COM STATUS POR PEDIDO
+  // Permite visualizar e alterar status de pedidos reais (Orçamento, Confirmado, Produzindo, Enviado, Entregue, Cancelado)
+  const [funilStatusFiltro, setFunilStatusFiltro] = React.useState<string>('todos')
+  const [modalEditarPedidoFunil, setModalEditarPedidoFunil] = React.useState<PedidoCliente | null>(
+    null,
+  )
+
   const funilVendas = useMemo(() => {
     const orcamentos = pedidosNoPeriodo.filter((p) => p.status === 'Orçamento').length
-    const fechados = pedidosNoPeriodo.filter((p) => p.status === 'Fechado').length
-    const pagos = pedidosNoPeriodo.filter((p) => p.status === 'Pago').length
+    const confirmados = pedidosNoPeriodo.filter(
+      (p) => p.status === 'Confirmado' || p.status === 'Fechado',
+    ).length
+    const produzindo = pedidosNoPeriodo.filter(
+      (p) => p.status === 'Produzindo' || p.status === 'Pago',
+    ).length
+    const enviados = pedidosNoPeriodo.filter((p) => p.status === 'Enviado').length
     const entregues = pedidosNoPeriodo.filter((p) => p.status === 'Entregue').length
+    const cancelados = pedidosNoPeriodo.filter((p) => p.status === 'Cancelado').length
+
+    const totalValidos = pedidosNoPeriodo.length - cancelados
+    const baseFunil = Math.max(totalValidos, pedidosNoPeriodo.length, 1)
 
     const estagios = [
       {
-        nome: '1. Orçamento Solicitado',
-        status: 'Orçamento',
-        count: orcamentos + fechados + pagos + entregues,
+        nome: '1. Orçamento',
+        chave: 'Orçamento',
+        count: orcamentos,
         cor: '#FB8C00', // Laranja
+        pct: Math.round((orcamentos / baseFunil) * 100),
       },
       {
-        nome: '2. Pedido Fechado',
-        status: 'Fechado',
-        count: fechados + pagos + entregues,
+        nome: '2. Confirmado',
+        chave: 'Confirmado',
+        count: confirmados,
         cor: '#8E24AA', // Roxo
+        pct: Math.round((confirmados / baseFunil) * 100),
       },
       {
-        nome: '3. Pagamento Confirmado',
-        status: 'Pago',
-        count: pagos + entregues,
-        cor: '#FF1493', // Rosa Choque
+        nome: '3. Produzindo',
+        chave: 'Produzindo',
+        count: produzindo,
+        cor: '#0288D1', // Azul
+        pct: Math.round((produzindo / baseFunil) * 100),
       },
       {
-        nome: '4. Ímãs Entregues ✨',
-        status: 'Entregue',
+        nome: '4. Enviado',
+        chave: 'Enviado',
+        count: enviados,
+        cor: '#FF1493', // Rosa choque
+        pct: Math.round((enviados / baseFunil) * 100),
+      },
+      {
+        nome: '5. Entregue ✨',
+        chave: 'Entregue',
         count: entregues,
         cor: '#2E7D32', // Verde
+        pct: Math.round((entregues / baseFunil) * 100),
+      },
+      {
+        nome: 'Cancelado',
+        chave: 'Cancelado',
+        count: cancelados,
+        cor: '#D32F2F', // Vermelho
+        pct: Math.round((cancelados / Math.max(pedidosNoPeriodo.length, 1)) * 100),
       },
     ]
 
-    const baseFunil = Math.max(estagios[0].count, 1)
-
-    return estagios.map((est) => ({
-      ...est,
-      pct: Math.round((est.count / baseFunil) * 100),
-    }))
+    return estagios
   }, [pedidosNoPeriodo])
 
   // FLUXO DE CAIXA: CONTEXTO TEMPORAL (entradas de pedidos vs saídas de custos)
@@ -740,52 +768,151 @@ export const ModuloPainel: React.FC = () => {
           </div>
         </div>
 
-        {/* Funil de Vendas de 4 Etapas (5 Colunas) */}
+        {/* Funil de Vendas com Status e Gestão por Pedido (5 Colunas) */}
         <div className="lg:col-span-5 bg-white rounded-2xl p-5 border border-[#F0E4E0] shadow-soft-pink space-y-4 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between border-b border-[#F0E4E0] pb-2">
               <div>
                 <h3 className="text-base font-bold text-[#4E342E] flex items-center gap-2">
                   <Filter className="w-4 h-4 text-[#FF1493]" />
-                  Funil de Vendas (Conversão)
+                  Funil de Vendas & Status por Pedido
                 </h3>
                 <p className="text-[11px] text-[#4E342E]/70">
-                  Etapas no período selecionado ({pedidosNoPeriodo.length} pedidos)
+                  {pedidosNoPeriodo.length} pedidos no período ({labelPeriodo})
                 </p>
               </div>
-              <button
-                onClick={() => navegarParaRelatorio('resumo')}
-                className="text-xs font-bold text-[#FF1493] hover:underline flex items-center gap-1"
-              >
-                <span>Auditar</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
             </div>
 
-            <div className="space-y-2.5 pt-3">
+            {/* Barra das Etapas do Funil */}
+            <div className="space-y-2 pt-3">
               {funilVendas.map((estagio) => (
                 <div key={estagio.nome} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-[#4E342E]">{estagio.nome}</span>
+                    <span className="font-bold text-[#4E342E] flex items-center gap-1.5">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full"
+                        style={{ backgroundColor: estagio.cor }}
+                      />
+                      <span>{estagio.nome}</span>
+                    </span>
                     <span className="text-[11px] font-bold text-[#4E342E]">
                       {estagio.count} {estagio.count === 1 ? 'pedido' : 'pedidos'} ({estagio.pct}%)
                     </span>
                   </div>
 
-                  <div className="w-full h-4 bg-gray-100 rounded-lg overflow-hidden p-0.5">
+                  <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden p-0.5">
                     <div
-                      style={{ width: `${estagio.pct}%`, backgroundColor: estagio.cor }}
-                      className="h-full rounded-md transition-all duration-500 shadow-2xs"
+                      style={{
+                        width: `${Math.max(estagio.count > 0 ? 5 : 0, estagio.pct)}%`,
+                        backgroundColor: estagio.cor,
+                      }}
+                      className="h-full rounded-full transition-all duration-500 shadow-2xs"
                     />
                   </div>
                 </div>
               ))}
             </div>
+
+            {/* Lista dos Pedidos do Período com Alteração de Status em Tempo Real */}
+            <div className="mt-4 pt-3 border-t border-[#F0E4E0]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-[#4E342E]">Pedidos e Status:</span>
+                <select
+                  value={funilStatusFiltro}
+                  onChange={(e) => setFunilStatusFiltro(e.target.value)}
+                  className="text-[11px] px-2 py-0.5 bg-[#F5EFEA] border rounded"
+                >
+                  <option value="todos">Todos os status</option>
+                  <option value="Orçamento">Orçamento</option>
+                  <option value="Confirmado">Confirmado / Fechado</option>
+                  <option value="Produzindo">Produzindo / Pago</option>
+                  <option value="Enviado">Enviado</option>
+                  <option value="Entregue">Entregue</option>
+                  <option value="Cancelado">Cancelado</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                {pedidosNoPeriodo.length === 0 ? (
+                  <p className="text-[11px] text-gray-400 italic py-2 text-center">
+                    Nenhum pedido no período ativo.
+                  </p>
+                ) : (
+                  pedidosNoPeriodo
+                    .filter((p) => {
+                      if (funilStatusFiltro === 'todos') return true
+                      if (funilStatusFiltro === 'Confirmado')
+                        return p.status === 'Confirmado' || p.status === 'Fechado'
+                      if (funilStatusFiltro === 'Produzindo')
+                        return p.status === 'Produzindo' || p.status === 'Pago'
+                      return p.status === funilStatusFiltro
+                    })
+                    .map((ped) => {
+                      const clienteDoPedido = data.clientes.find((c) => c.id === ped.clienteId)
+                      return (
+                        <div
+                          key={ped.id}
+                          className="p-2 bg-[#FAFAFA] rounded-lg border border-gray-100 flex items-center justify-between gap-2 text-xs hover:border-[#FF1493]/30"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-bold text-[#4E342E] truncate">
+                              {ped.clienteNome} • {ped.quantidade} un {ped.produtoNome}
+                            </p>
+                            <p className="text-[10px] text-gray-500">
+                              {formatarMoeda(ped.receita)} •{' '}
+                              {formatarDataHoraPtBR(ped.criadoEm).split(' ')[0]}
+                            </p>
+                          </div>
+
+                          {/* Seletor rápido de status do pedido */}
+                          <select
+                            value={ped.status}
+                            onChange={(e) => {
+                              const novoStatus = e.target.value as PedidoCliente['status']
+                              if (clienteDoPedido) {
+                                updatePedidoStatus(clienteDoPedido.id, ped.id, novoStatus)
+                                toast({
+                                  title: 'Status atualizado no Funil! ✨',
+                                  description: `Pedido de ${ped.clienteNome} alterado para "${novoStatus}".`,
+                                })
+                              }
+                            }}
+                            className={`text-[11px] font-bold px-2 py-0.5 rounded-full border cursor-pointer ${
+                              ped.status === 'Entregue'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                : ped.status === 'Produzindo'
+                                  ? 'bg-cyan-100 text-cyan-800 border-cyan-300'
+                                  : ped.status === 'Enviado'
+                                    ? 'bg-indigo-100 text-indigo-800 border-indigo-300'
+                                    : ped.status === 'Confirmado' || ped.status === 'Fechado'
+                                      ? 'bg-purple-100 text-purple-800 border-purple-300'
+                                      : ped.status === 'Pago'
+                                        ? 'bg-blue-100 text-blue-800 border-blue-300'
+                                        : ped.status === 'Cancelado'
+                                          ? 'bg-red-100 text-red-800 border-red-300'
+                                          : 'bg-amber-100 text-amber-800 border-amber-300'
+                            }`}
+                          >
+                            <option value="Orçamento">Orçamento</option>
+                            <option value="Confirmado">Confirmado</option>
+                            <option value="Fechado">Fechado</option>
+                            <option value="Pago">Pago</option>
+                            <option value="Produzindo">Produzindo</option>
+                            <option value="Enviado">Enviado</option>
+                            <option value="Entregue">Entregue</option>
+                            <option value="Cancelado">Cancelado</option>
+                          </select>
+                        </div>
+                      )
+                    })
+                )}
+              </div>
+            </div>
           </div>
 
           <p className="text-[11px] text-gray-400 italic pt-2 border-t border-gray-100">
-            Dica Bru: Acompanhe pedidos em "Orçamento" e envie fotos de amostra no WhatsApp para
-            acelerar o fechamento! 💖
+            Dica Bru: Mude o status do pedido direto no funil conforme avança na produção e envio!
+            💖
           </p>
         </div>
       </div>

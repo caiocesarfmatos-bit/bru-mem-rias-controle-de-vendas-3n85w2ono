@@ -35,6 +35,7 @@ export function exportarCsvClientes(dados: AppData): void {
     'Endereço',
     'Data Cadastro',
     'Consentimento LGPD',
+    'Data Consentimento LGPD',
     'Total Gasto (R$)',
     'Total Pedidos',
   ]
@@ -50,6 +51,7 @@ export function exportarCsvClientes(dados: AppData): void {
       `"${(cli.endereco || '').replace(/"/g, '""')}"`,
       `"${formatarDataPtBR(cli.dataCadastro)}"`,
       `"${cli.consentimentoLgpd ? 'Sim' : 'Não'}"`,
+      `"${cli.dataConsentimentoLgpd ? cli.dataConsentimentoLgpd : cli.consentimentoLgpd ? cli.dataCadastro : '-'}"`,
       `"${formatarMoeda(totalGasto).replace('R$', '').trim()}"`,
       `"${cli.pedidos.length}"`,
     ].join(';')

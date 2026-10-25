@@ -35,7 +35,9 @@ export const ModuloCalculadora: React.FC = () => {
 
   const { toast } = useToast()
 
-  // Calcular custo unitário padrão a partir do produto selecionado no Módulo 1
+  const { logAudit } = useApp()
+
+  // Calcular custo unitário padrão a partir do produto selecionado no Módulo Custos (custo total / unidades produzidas)
   const loteUnidades = Math.max(1, activeProduct.unidadesLote || 100)
   const custoTotalLote = activeProduct.itens.reduce((acc, it) => {
     const somaExtras = it.lancamentos.reduce((s, l) => s + l.valor, 0)
@@ -47,11 +49,15 @@ export const ModuloCalculadora: React.FC = () => {
   const [quantidade, setQuantidade] = useState<number>(2)
   const [precoUnitario, setPrecoUnitario] = useState<number>(14.99)
   const [custoUnitario, setCustoUnitario] = useState<number>(custoUnitarioCalculado)
+  // Flag para rastrear se o custo foi sobrescrito manualmente pelo usuário
+  const [custoManualSobrescrito, setCustoManualSobrescrito] = useState<boolean>(false)
 
-  // Atualizar custoUnitario sempre que o produto selecionado mudar
+  // Atualizar custoUnitario sempre que o produto selecionado ou custo apurado mudar, a menos que o usuário tenha sobrescrito
   useEffect(() => {
-    setCustoUnitario(custoUnitarioCalculado)
-  }, [activeProduct.id, custoUnitarioCalculado])
+    if (!custoManualSobrescrito) {
+      setCustoUnitario(custoUnitarioCalculado)
+    }
+  }, [activeProduct.id, custoUnitarioCalculado, custoManualSobrescrito])
 
   // Deduções adicionais
   const [desconto, setDesconto] = useState<number>(0)
@@ -96,8 +102,16 @@ export const ModuloCalculadora: React.FC = () => {
   // Ponto de equilíbrio = custo unitário / preço unitário (ou despesas fixas / margem de contribuição)
   const pontoEquilibrioUnidades = precoSeguro > 0 ? Math.ceil(custoTotalProdutos / precoSeguro) : 0
 
-  // Margem abaixo do alerta
-  const alertaMargemBaixa = margemLiquidaPct < margemMinimaConfig
+  // Margem mínima passa a comparar contra o custo real apurado da aba Custos
+  // Custo total de referência baseado no custo real apurado da aba Custos:
+  const custoTotalRealApurado = qtdSegura * custoUnitarioCalculado
+  const lucroLiquidoRealApurado = Math.max(0, receitaBruta - custoTotalRealApurado - deducoesTotais)
+  const margemLiquidaRealApuradaPct =
+    receitaBruta > 0 ? (lucroLiquidoRealApurado / receitaBruta) * 100 : 0
+
+  // Alerta compara contra o custo real apurado da aba Custos (e também sinaliza se margem do cálculo atual estiver baixa)
+  const alertaMargemBaixa =
+    margemLiquidaRealApuradaPct < margemMinimaConfig || margemLiquidaPct < margemMinimaConfig
 
   // Preço oficial correspondente à quantidade atual
   const precoOficialSugerido = obterPrecoOficial(qtdSegura)
@@ -170,6 +184,14 @@ export const ModuloCalculadora: React.FC = () => {
       observacoes: observacoesPedido.trim(),
     })
 
+    // Registrar na trilha de auditoria se o custo usado veio da aba Custos vs manual
+    const origemCusto = custoManualSobrescrito ? 'manual' : 'aba Custos (automático)'
+    logAudit(
+      'Calculadora',
+      'Origem do custo no pedido',
+      `Pedido com custo unitário R$ ${custoSeguro.toFixed(2)} (${origemCusto}). Custo apurado de referência: R$ ${custoUnitarioCalculado.toFixed(2)}.`,
+    )
+
     setShowSalvarModal(false)
     setObservacoesPedido('')
     toast({
@@ -238,9 +260,10 @@ export const ModuloCalculadora: React.FC = () => {
                 Atenção: Margem líquida abaixo do limite desejado!
               </h3>
               <p className="text-xs text-red-600/90">
-                A margem calculada ({margemLiquidaPct.toFixed(1)}%) está menor que a margem mínima
-                configurada ({margemMinimaConfig}%). Considere aumentar o preço unitário ou negociar
-                insumos.
+                A margem calculada ({margemLiquidaPct.toFixed(1)}% vs real{' '}
+                {margemLiquidaRealApuradaPct.toFixed(1)}% apurada na aba Custos) está menor que a
+                margem mínima configurada ({margemMinimaConfig}%). Considere aumentar o preço
+                unitário ou negociar insumos.
               </p>
             </div>
           </div>
@@ -374,20 +397,37 @@ export const ModuloCalculadora: React.FC = () => {
               </div>
             </div>
 
-            {/* Custo Unitário (Pré-preenchido do Módulo 1, editável) */}
+            {/* Custo Unitário (Automático da aba Custos, sobrescritível manualmente) */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label htmlFor="input-custo-unitario" className="text-xs font-bold text-[#4E342E]">
-                  Custo Unit. (Módulo 1)
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setCustoUnitario(custoUnitarioCalculado)}
-                  className="text-[10px] text-[#FF1493] font-semibold hover:underline"
-                  title="Restaurar custo calculado no Módulo 1"
+                <label
+                  htmlFor="input-custo-unitario"
+                  className="text-xs font-bold text-[#4E342E] flex items-center gap-1"
                 >
-                  Recarregar
-                </button>
+                  <span>Custo Unitário</span>
+                </label>
+                {custoManualSobrescrito ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustoUnitario(custoUnitarioCalculado)
+                      setCustoManualSobrescrito(false)
+                      logAudit(
+                        'Calculadora',
+                        'Custo unitário restaurado',
+                        `Restaurado custo automático apurado na aba Custos (R$ ${custoUnitarioCalculado.toFixed(2)}).`,
+                      )
+                    }}
+                    className="text-[10px] text-[#FF1493] font-bold hover:underline"
+                    title="Voltar ao custo apurado automaticamente na aba Custos"
+                  >
+                    Usar aba Custos
+                  </button>
+                ) : (
+                  <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                    Aba Custos (Real)
+                  </span>
+                )}
               </div>
               <div className="relative">
                 <span className="absolute left-3 top-2 text-xs font-bold text-gray-400">R$</span>
@@ -397,9 +437,28 @@ export const ModuloCalculadora: React.FC = () => {
                   step="0.01"
                   min="0"
                   value={custoUnitario}
-                  onChange={(e) => setCustoUnitario(parseFloat(e.target.value) || 0)}
-                  className="w-full pl-9 pr-3 py-2 text-sm font-bold bg-[#FAFAFA] border border-[#F0E4E0] rounded-xl focus:bg-white focus:ring-2 focus:ring-[#FF1493]"
+                  onChange={(e) => {
+                    const novoVal = parseFloat(e.target.value) || 0
+                    setCustoUnitario(novoVal)
+                    setCustoManualSobrescrito(true)
+                  }}
+                  className={`w-full pl-9 pr-3 py-2 text-sm font-bold rounded-xl focus:bg-white focus:ring-2 focus:ring-[#FF1493] ${
+                    custoManualSobrescrito
+                      ? 'bg-amber-50/60 border-2 border-amber-300 text-[#4E342E]'
+                      : 'bg-emerald-50/40 border border-emerald-200 text-[#4E342E]'
+                  }`}
                 />
+              </div>
+              <div className="flex items-center justify-between mt-1 text-[10px]">
+                {custoManualSobrescrito ? (
+                  <span className="text-amber-700 font-semibold flex items-center gap-1">
+                    ✏️ Custo manual (Apurado: {formatarMoeda(custoUnitarioCalculado)})
+                  </span>
+                ) : (
+                  <span className="text-emerald-700 font-medium">
+                    ✓ Puxado automaticamente da aba Custos
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -669,9 +728,13 @@ export const ModuloCalculadora: React.FC = () => {
                     className="w-full px-3 py-2 text-xs border rounded-lg font-semibold"
                   >
                     <option value="Orçamento">Orçamento</option>
+                    <option value="Confirmado">Confirmado</option>
                     <option value="Fechado">Fechado</option>
                     <option value="Pago">Pago</option>
+                    <option value="Produzindo">Produzindo</option>
+                    <option value="Enviado">Enviado</option>
                     <option value="Entregue">Entregue</option>
+                    <option value="Cancelado">Cancelado</option>{' '}
                   </select>
                 </div>
                 <div>

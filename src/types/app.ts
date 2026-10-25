@@ -8,6 +8,7 @@ export type TabId =
   | 'estoque'
   | 'painel'
   | 'relatorios'
+  | 'diagnostico'
 
 export interface CustoLancamento {
   id: string
@@ -33,7 +34,15 @@ export interface ProdutoKit {
   criadoEm: string
 }
 
-export type OrderStatus = 'Orçamento' | 'Fechado' | 'Pago' | 'Entregue'
+export type OrderStatus =
+  | 'Orçamento'
+  | 'Confirmado'
+  | 'Fechado'
+  | 'Pago'
+  | 'Produzindo'
+  | 'Enviado'
+  | 'Entregue'
+  | 'Cancelado'
 
 export interface PedidoCliente {
   id: string
@@ -71,6 +80,7 @@ export interface Cliente {
   tiktok: string
   outrosCanais: string
   consentimentoLgpd: boolean
+  dataConsentimentoLgpd?: string // ISO data/hora em que consentiu
   dataCadastro: string // YYYY-MM-DD
   pedidos: PedidoCliente[]
 }

@@ -27,16 +27,32 @@ import {
   Boxes,
   X,
   AlertTriangle,
+  Stethoscope,
+  Trash2,
 } from 'lucide-react'
 
 export const Header: React.FC = () => {
-  const { activeTab, setActiveTab, data, audit, restoreDataFromJson, resetAllData, logAudit } =
-    useApp()
+  const {
+    activeTab,
+    setActiveTab,
+    data,
+    audit,
+    restoreDataFromJson,
+    resetAllData,
+    apagarTodosOsDadosLocais,
+    logAudit,
+  } = useApp()
   const { toast } = useToast()
 
   const [showBackupModal, setShowBackupModal] = useState(false)
   const [showResetModal, setShowResetModal] = useState(false)
   const [resetConfirmWord, setResetConfirmWord] = useState('')
+
+  // Modal de Exclusão Completa LGPD com dupla confirmação
+  const [showApagarTudoModal, setShowApagarTudoModal] = useState(false)
+  const [etapaConfirmacaoApagarTudo, setEtapaConfirmacaoApagarTudo] = useState<1 | 2>(1)
+  const [palavraApagarTudo, setPalavraApagarTudo] = useState('')
+
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const estoqueInsumos = data.estoque?.insumos || []
@@ -74,6 +90,7 @@ export const Header: React.FC = () => {
     },
     { id: 'painel', label: 'Painel', icon: <LayoutDashboard className="w-4 h-4" /> },
     { id: 'relatorios', label: 'Relatórios', icon: <BarChart3 className="w-4 h-4" /> },
+    { id: 'diagnostico', label: 'Diagnóstico', icon: <Stethoscope className="w-4 h-4" /> },
   ]
 
   const handleExportJson = () => {
@@ -202,6 +219,26 @@ export const Header: React.FC = () => {
     toast({
       title: 'Dados restaurados!',
       description: 'O aplicativo foi reiniciado com os dados de fábrica.',
+    })
+  }
+
+  // LGPD: Apagar TODOS os dados locais com dupla confirmação
+  const handleExecutarApagarTudo = () => {
+    if (palavraApagarTudo.trim().toUpperCase() !== 'APAGAR TUDO') {
+      toast({
+        title: 'Confirmação incorreta',
+        description: 'Digite exatamente "APAGAR TUDO" para concluir.',
+        variant: 'destructive',
+      })
+      return
+    }
+    apagarTodosOsDadosLocais()
+    setShowApagarTudoModal(false)
+    setEtapaConfirmacaoApagarTudo(1)
+    setPalavraApagarTudo('')
+    toast({
+      title: 'Todos os dados locais foram apagados (LGPD)! 🔒',
+      description: 'Nenhum dado pessoal, cliente ou pedido permanece no navegador.',
     })
   }
 
@@ -422,26 +459,143 @@ export const Header: React.FC = () => {
                 </button>
               </div>
 
-              {/* Seção Limpeza Geral de Dados */}
-              <div className="pt-2 border-t border-[#F0E4E0] flex justify-between items-center">
-                <button
-                  onClick={() => {
-                    setShowBackupModal(false)
-                    setShowResetModal(true)
-                  }}
-                  className="text-xs font-semibold text-red-600 hover:text-red-700 flex items-center gap-1 py-1"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Resetar para padrões de fábrica
-                </button>
-                <button
-                  onClick={() => setShowBackupModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-[#4E342E] bg-gray-100 hover:bg-gray-200 rounded-full"
-                >
-                  Fechar
-                </button>
+              {/* Seção Limpeza Geral e Exclusão Completa LGPD */}
+              <div className="pt-3 border-t border-[#F0E4E0] space-y-2">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      setShowBackupModal(false)
+                      setShowResetModal(true)
+                    }}
+                    className="text-xs font-semibold text-amber-700 hover:text-amber-800 flex items-center gap-1 py-1"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Resetar para padrões de fábrica
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowBackupModal(false)
+                      setEtapaConfirmacaoApagarTudo(1)
+                      setPalavraApagarTudo('')
+                      setShowApagarTudoModal(true)
+                    }}
+                    className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1 py-1 px-2.5 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Apagar todos os meus dados (LGPD)
+                  </button>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    onClick={() => setShowBackupModal(false)}
+                    className="px-4 py-2 text-xs font-semibold text-[#4E342E] bg-gray-100 hover:bg-gray-200 rounded-full"
+                  >
+                    Fechar
+                  </button>
+                </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Dupla Confirmação: Apagar TODOS os meus dados (LGPD) */}
+      {showApagarTudoModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border-2 border-red-500">
+            <div className="flex items-center gap-2 text-red-600 mb-3">
+              <AlertTriangle className="w-6 h-6" />
+              <h2 className="text-lg font-bold font-brand-serif">
+                {etapaConfirmacaoApagarTudo === 1
+                  ? 'Exclusão Completa de Dados Locais (LGPD)'
+                  : '⚠️ Confirmação Final: Apagar Tudo Definitivamente'}
+              </h2>
+            </div>
+
+            {etapaConfirmacaoApagarTudo === 1 ? (
+              <div>
+                <p className="text-xs text-[#4E342E]/80 mb-3 leading-relaxed">
+                  Esta operação atende ao <strong>Direito de Exclusão Integral (LGPD)</strong>. Ela
+                  eliminará do seu navegador:
+                </p>
+                <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-xs text-red-800 space-y-1 mb-4">
+                  <ul className="list-disc list-inside space-y-0.5 text-[11px]">
+                    <li>Todos os clientes e seus históricos de compras.</li>
+                    <li>Todos os lançamentos e personalizações de custos.</li>
+                    <li>Todo o estoque e movimentações registradas.</li>
+                    <li>Todas as metas e histórico de auditoria.</li>
+                  </ul>
+                  <p className="font-bold pt-1">
+                    Não há como desfazer esta ação a menos que você possua um arquivo de backup JSON
+                    salvo.
+                  </p>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setShowApagarTudoModal(false)}
+                    className="px-4 py-2 text-xs font-semibold text-[#4E342E] bg-gray-100 hover:bg-gray-200 rounded-full"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => setEtapaConfirmacaoApagarTudo(2)}
+                    className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-full shadow-sm"
+                  >
+                    Prosseguir para Confirmação 2/2 →
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-xs text-[#4E342E]/80 mb-3 leading-relaxed">
+                  <strong>Segunda e última confirmação:</strong> Tem certeza absoluta de que deseja
+                  limpar todos os registros locais deste aparelho?
+                </p>
+                <div className="mb-4">
+                  <label className="block text-xs font-bold text-[#4E342E] mb-1">
+                    Para autorizar o apagamento, digite{' '}
+                    <span className="text-red-600">APAGAR TUDO</span>:
+                  </label>
+                  <input
+                    type="text"
+                    value={palavraApagarTudo}
+                    onChange={(e) => setPalavraApagarTudo(e.target.value)}
+                    placeholder="APAGAR TUDO"
+                    className="w-full px-3 py-2 text-sm border rounded-lg uppercase tracking-wider font-mono focus:outline-none focus:ring-2 focus:ring-red-500"
+                    autoFocus
+                  />
+                </div>
+                <div className="flex justify-between items-center gap-2">
+                  <button
+                    onClick={() => setEtapaConfirmacaoApagarTudo(1)}
+                    className="text-xs font-semibold text-gray-600 hover:underline"
+                  >
+                    ← Voltar
+                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowApagarTudoModal(false)}
+                      className="px-4 py-2 text-xs font-semibold text-[#4E342E] bg-gray-100 hover:bg-gray-200 rounded-full"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleExecutarApagarTudo}
+                      disabled={palavraApagarTudo.trim().toUpperCase() !== 'APAGAR TUDO'}
+                      className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-full shadow-sm"
+                    >
+                      Apagar Tudo Definitivamente
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

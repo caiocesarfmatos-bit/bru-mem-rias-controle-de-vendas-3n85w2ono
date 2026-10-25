@@ -9,6 +9,7 @@ import { PainelMetricas } from './PainelMetricas'
 import { ModuloUsuarios } from './ModuloUsuarios'
 import { SecaoCentroBackup } from './SecaoCentroBackup'
 import { SecaoFaixasFrete } from './SecaoFaixasFrete'
+import { ModuloMarketing } from './ModuloMarketing'
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -20,12 +21,14 @@ import {
   LogOut,
   Archive,
   Truck,
+  Megaphone,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BrandLogo } from '@/components/BrandLogo'
 type ModuloId =
   | 'dashboard'
   | 'vendas'
+  | 'marketing'
   | 'pessoas'
   | 'estoque'
   | 'frete'
@@ -52,6 +55,12 @@ export const CentralAdministrativa: React.FC = () => {
     usuario?.perfil === 'administrador' ||
     usuario?.perfil === 'gestor'
   const podeAcessarVendas = temPermissao('pedidos.ver')
+  const podeAcessarMarketing =
+    temPermissao('gerenciar_marketing') ||
+    usuario?.perfil === 'administrador' ||
+    usuario?.perfil === 'gestor' ||
+    usuario?.perfil === 'vendedor' ||
+    usuario?.perfil === 'consulta'
   const podeAcessarPessoas = temPermissao('pessoas.ver')
   const podeAcessarEstoque = temPermissao('produtos.ver')
   const podeAcessarFrete =
@@ -68,6 +77,8 @@ export const CentralAdministrativa: React.FC = () => {
         return <PainelMetricas />
       case 'vendas':
         return <ModuloVendas />
+      case 'marketing':
+        return <ModuloMarketing />
       case 'pessoas':
         return <ModuloPessoas />
       case 'estoque':
@@ -147,6 +158,20 @@ export const CentralAdministrativa: React.FC = () => {
               >
                 <ShoppingCart className="w-3.5 h-3.5" />
                 Vendas & Pedidos
+              </button>
+            )}
+
+            {podeAcessarMarketing && (
+              <button
+                onClick={() => setModuloAtivo('marketing')}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold whitespace-nowrap transition-colors min-h-[40px] ${
+                  moduloAtivo === 'marketing'
+                    ? 'bg-[#E63980] text-white shadow-sm'
+                    : 'text-[#4E342E]/80 hover:bg-white hover:text-[#4E342E]'
+                }`}
+              >
+                <Megaphone className="w-3.5 h-3.5" />
+                Marketing & Funil
               </button>
             )}
 
@@ -258,18 +283,18 @@ export const CentralAdministrativa: React.FC = () => {
 
       {/* NAVEGAÇÃO INFERIOR EXCLUSIVA PARA CELULAR / IPHONE (BOTTOM NAVIGATION BAR) */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-[#F0E4E0] z-40 pb-safe shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
-        <div className="grid grid-cols-5 h-16 items-center px-1">
+        <div className="grid grid-cols-6 h-16 items-center px-1">
           {podeAcessarDashboard && (
             <button
               onClick={() => setModuloAtivo('dashboard')}
               className={`flex flex-col items-center justify-center h-full min-h-[48px] rounded transition-colors ${
                 moduloAtivo === 'dashboard'
-                  ? 'text-[#FF1493] font-bold'
+                  ? 'text-[#E63980] font-bold'
                   : 'text-[#4E342E]/70 hover:text-[#4E342E]'
               }`}
             >
-              <LayoutDashboard className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] tracking-tight">Painel</span>
+              <LayoutDashboard className="w-4 h-4 mb-0.5" />
+              <span className="text-[9px] tracking-tight">Painel</span>
             </button>
           )}
 
@@ -278,12 +303,26 @@ export const CentralAdministrativa: React.FC = () => {
               onClick={() => setModuloAtivo('vendas')}
               className={`flex flex-col items-center justify-center h-full min-h-[48px] rounded transition-colors ${
                 moduloAtivo === 'vendas'
-                  ? 'text-[#FF1493] font-bold'
+                  ? 'text-[#E63980] font-bold'
                   : 'text-[#4E342E]/70 hover:text-[#4E342E]'
               }`}
             >
-              <ShoppingCart className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] tracking-tight">Vendas</span>
+              <ShoppingCart className="w-4 h-4 mb-0.5" />
+              <span className="text-[9px] tracking-tight">Vendas</span>
+            </button>
+          )}
+
+          {podeAcessarMarketing && (
+            <button
+              onClick={() => setModuloAtivo('marketing')}
+              className={`flex flex-col items-center justify-center h-full min-h-[48px] rounded transition-colors ${
+                moduloAtivo === 'marketing'
+                  ? 'text-[#E63980] font-bold'
+                  : 'text-[#4E342E]/70 hover:text-[#4E342E]'
+              }`}
+            >
+              <Megaphone className="w-4 h-4 mb-0.5" />
+              <span className="text-[9px] tracking-tight">Mkt/Funil</span>
             </button>
           )}
 
@@ -292,12 +331,12 @@ export const CentralAdministrativa: React.FC = () => {
               onClick={() => setModuloAtivo('pessoas')}
               className={`flex flex-col items-center justify-center h-full min-h-[48px] rounded transition-colors ${
                 moduloAtivo === 'pessoas'
-                  ? 'text-[#FF1493] font-bold'
+                  ? 'text-[#E63980] font-bold'
                   : 'text-[#4E342E]/70 hover:text-[#4E342E]'
               }`}
             >
-              <Users className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] tracking-tight">Clientes</span>
+              <Users className="w-4 h-4 mb-0.5" />
+              <span className="text-[9px] tracking-tight">Clientes</span>
             </button>
           )}
 
@@ -306,12 +345,12 @@ export const CentralAdministrativa: React.FC = () => {
               onClick={() => setModuloAtivo('estoque')}
               className={`flex flex-col items-center justify-center h-full min-h-[48px] rounded transition-colors ${
                 moduloAtivo === 'estoque'
-                  ? 'text-[#FF1493] font-bold'
+                  ? 'text-[#E63980] font-bold'
                   : 'text-[#4E342E]/70 hover:text-[#4E342E]'
               }`}
             >
-              <Package className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] tracking-tight">Produção</span>
+              <Package className="w-4 h-4 mb-0.5" />
+              <span className="text-[9px] tracking-tight">Estoque</span>
             </button>
           )}
 
@@ -323,12 +362,12 @@ export const CentralAdministrativa: React.FC = () => {
             }}
             className={`flex flex-col items-center justify-center h-full min-h-[48px] rounded transition-colors ${
               ['financeiro', 'relatorios', 'frete', 'usuarios', 'backup'].includes(moduloAtivo)
-                ? 'text-[#FF1493] font-bold'
+                ? 'text-[#E63980] font-bold'
                 : 'text-[#4E342E]/70 hover:text-[#4E342E]'
             }`}
           >
-            <Landmark className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px] tracking-tight">Gestão</span>
+            <Landmark className="w-4 h-4 mb-0.5" />
+            <span className="text-[9px] tracking-tight">Gestão</span>
           </button>
         </div>
       </nav>

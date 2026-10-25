@@ -148,6 +148,28 @@ export interface MetricasGerenciaisResultado {
     novosClientesNoPeriodo: number
     pedidosPorFormaPagamento: FormaPagamentoMetricaItem[]
   }
+
+  // 5. Marketing
+  marketing: {
+    totalLeadsPeriodo: number
+    totalLeadsAnterior: number
+    variacaoLeadsPct: number | null
+    leadsGanhosPeriodo: number
+    leadsPerdidosPeriodo: number
+    taxaConversaoLeadsPct: number | null
+    taxaConversaoAnteriorPct: number | null
+    valorPedidosOriginadosCentavos: number
+    leadsPorOrigem: Array<{
+      origem: string
+      rotulo: string
+      quantidade: number
+      percentual: number
+    }>
+    leadsPorStatus: Array<{ status: string; rotulo: string; quantidade: number }>
+    publicacoesPlanejadasPeriodo: number
+    publicacoesPublicadasPeriodo: number
+    publicacoesAtrasadas: number
+  }
 }
 
 // Determina intervalo de datas conforme regra de competência em formato YYYY-MM-DD
@@ -266,6 +288,8 @@ export async function obterMetricasGerenciais(params: {
     todosMovimentos,
     todasPessoas,
     formasPagamentoDominio,
+    todosLeads,
+    todosPosts,
   ] = await Promise.all([
     listarPedidos(),
     listarLancamentosFinanceiros('todos'),
@@ -275,6 +299,14 @@ export async function obterMetricasGerenciais(params: {
     listarMovimentosEstoque(),
     listarPessoas(),
     listarFormasPagamento(),
+    pb
+      .collection('leads')
+      .getFullList({ expand: 'cliente_convertido' })
+      .catch(() => []),
+    pb
+      .collection('calendario_editorial')
+      .getFullList()
+      .catch(() => []),
   ])
 
   // Dados legados/orçamentos v5 em memória (para orçamentos abertos/conversão v5 se aplicável)
@@ -642,6 +674,119 @@ export async function obterMetricasGerenciais(params: {
     }
   }
 
+  // 4.5 MÉTRICAS DE MARKETING (Filtradas por vendedor se perfil for vendedor)
+  const leadsBase = isVendedor
+    ? (todosLeads as any[]).filter(
+        (l) => l.vendedor_responsavel === userId || !l.vendedor_responsavel,
+      )
+    : (todosLeads as any[])
+
+  const leadsAtual = leadsBase.filter((l) => {
+    const ymd = extrairYmd(l.created)
+    return ymd >= atual.inicio && ymd <= atual.fim
+  })
+
+  const leadsAnterior = leadsBase.filter((l) => {
+    const ymd = extrairYmd(l.created)
+    return ymd >= anterior.inicio && ymd <= anterior.fim
+  })
+
+  const totalLeadsPeriodo = leadsAtual.length
+  const totalLeadsAnterior = leadsAnterior.length
+  const varLeads = calcularVariacaoPct(totalLeadsPeriodo, totalLeadsAnterior)
+
+  const leadsGanhosPeriodo = leadsAtual.filter((l) => l.status_funil === 'fechado_ganho').length
+  const leadsPerdidosPeriodo = leadsAtual.filter((l) => l.status_funil === 'fechado_perdido').length
+  const taxaConversaoLeadsPct =
+    totalLeadsPeriodo > 0
+      ? Number(((leadsGanhosPeriodo / totalLeadsPeriodo) * 100).toFixed(1))
+      : null
+
+  const leadsGanhosAnterior = leadsAnterior.filter((l) => l.status_funil === 'fechado_ganho').length
+  const taxaConversaoAnteriorPct =
+    totalLeadsAnterior > 0
+      ? Number(((leadsGanhosAnterior / totalLeadsAnterior) * 100).toFixed(1))
+      : null
+
+  // Valor real dos pedidos confirmados/faturados dos clientes convertidos
+  const clientesConvertidosIds = new Set(
+    leadsBase
+      .filter((l) => l.status_funil === 'fechado_ganho' && l.cliente_convertido)
+      .map((l) => l.cliente_convertido),
+  )
+
+  const valorPedidosOriginadosCentavos = todosPedidos
+    .filter(
+      (p) =>
+        (p.status === 'confirmado' || p.status === 'faturado') &&
+        clientesConvertidosIds.has(p.cliente),
+    )
+    .reduce((acc, p) => acc + (p.total_centavos || 0), 0)
+
+  // Leads por origem
+  const origensRotulos: Record<string, string> = {
+    instagram: 'Instagram',
+    indicacao: 'Indicação de Cliente',
+    feira_evento: 'Feira / Evento',
+    whatsapp: 'WhatsApp Direto',
+    site_google: 'Site / Busca Google',
+    outro: 'Outro Canal',
+  }
+  const contagemOrigemMap: Record<string, number> = {}
+  for (const l of leadsAtual) {
+    const orig = l.origem || 'outro'
+    contagemOrigemMap[orig] = (contagemOrigemMap[orig] || 0) + 1
+  }
+
+  const leadsPorOrigem = Object.keys(origensRotulos)
+    .map((orig) => {
+      const qtd = contagemOrigemMap[orig] || 0
+      return {
+        origem: orig,
+        rotulo: origensRotulos[orig] || orig,
+        quantidade: qtd,
+        percentual:
+          totalLeadsPeriodo > 0 ? Number(((qtd / totalLeadsPeriodo) * 100).toFixed(1)) : 0,
+      }
+    })
+    .sort((a, b) => b.quantidade - a.quantidade)
+
+  // Leads por status no período
+  const statusFunilRotulos: Record<string, string> = {
+    novo_contato: 'Novo Contato',
+    atendimento_iniciado: 'Atendimento Iniciado',
+    orcamento_enviado: 'Orçamento Enviado',
+    negociacao: 'Em Negociação',
+    fechado_ganho: 'Fechado Ganho',
+    fechado_perdido: 'Fechado Perdido',
+    sem_resposta: 'Sem Resposta',
+  }
+  const contagemStatusLeadMap: Record<string, number> = {}
+  for (const l of leadsAtual) {
+    const st = l.status_funil || 'novo_contato'
+    contagemStatusLeadMap[st] = (contagemStatusLeadMap[st] || 0) + 1
+  }
+  const leadsPorStatus = Object.keys(statusFunilRotulos).map((st) => ({
+    status: st,
+    rotulo: statusFunilRotulos[st] || st,
+    quantidade: contagemStatusLeadMap[st] || 0,
+  }))
+
+  // Publicações do Calendário no período
+  const postsList = todosPosts as any[]
+  const postsNoPeriodo = postsList.filter((p) => {
+    const ymd = extrairYmd(p.data_prevista)
+    return ymd >= atual.inicio && ymd <= atual.fim
+  })
+  const publicacoesPlanejadasPeriodo = postsNoPeriodo.length
+  const publicacoesPublicadasPeriodo = postsNoPeriodo.filter((p) => p.status === 'publicada').length
+
+  const hojeDataIso = paraYmd(new Date())
+  const publicacoesAtrasadas = postsList.filter((p) => {
+    const ymd = extrairYmd(p.data_prevista)
+    return ymd < hojeDataIso && p.status !== 'publicada' && p.status !== 'cancelada'
+  }).length
+
   // 5. MÉTRICAS COMERCIAIS
   // Orçamentos emitidos e aprovados no período (coleção pedidos_venda com rascunhos / confirmados, mais orçamentos v5 se houver)
   const hojeYmd = paraYmd(new Date())
@@ -760,6 +905,21 @@ export async function obterMetricasGerenciais(params: {
       novosClientesNoPeriodo,
       pedidosPorFormaPagamento,
     },
+    marketing: {
+      totalLeadsPeriodo,
+      totalLeadsAnterior,
+      variacaoLeadsPct: varLeads,
+      leadsGanhosPeriodo,
+      leadsPerdidosPeriodo,
+      taxaConversaoLeadsPct,
+      taxaConversaoAnteriorPct,
+      valorPedidosOriginadosCentavos,
+      leadsPorOrigem,
+      leadsPorStatus,
+      publicacoesPlanejadasPeriodo,
+      publicacoesPublicadasPeriodo,
+      publicacoesAtrasadas,
+    },
   }
 }
 
@@ -829,6 +989,19 @@ export function gerarCsvResumoDashboard(metricas: MetricasGerenciaisResultado): 
     `Itens_Sem_Movimento_No_Periodo;${metricas.estoque.itensSemMovimentoNoPeriodo.length}\n` +
     `Total_Produtos_Cadastrados;${metricas.estoque.totalItensCadastrados}\n\n`
 
+  // Seção 5.5: Marketing e Funil
+  const secMarketing =
+    '--- METRICAS DE MARKETING E FUNIL DE LEADS ---\n' +
+    'Indicador;Valor_Periodo_Atual;Valor_Periodo_Anterior;Variacao_Percentual\n' +
+    `Total_Leads;${metricas.marketing.totalLeadsPeriodo};${metricas.marketing.totalLeadsAnterior};${metricas.marketing.variacaoLeadsPct !== null ? metricas.marketing.variacaoLeadsPct.toFixed(1).replace('.', ',') + '%' : 'N/A'}\n` +
+    `Leads_Fechado_Ganho;${metricas.marketing.leadsGanhosPeriodo};-\n` +
+    `Leads_Fechado_Perdido;${metricas.marketing.leadsPerdidosPeriodo};-\n` +
+    `Taxa_Conversao_Leads;${metricas.marketing.taxaConversaoLeadsPct !== null ? metricas.marketing.taxaConversaoLeadsPct.toFixed(1).replace('.', ',') + '%' : 'N/A'}\n` +
+    `Valor_Pedidos_Originados_Reais;${(metricas.marketing.valorPedidosOriginadosCentavos / 100).toFixed(2).replace('.', ',')}\n` +
+    `Publicacoes_Planejadas_Periodo;${metricas.marketing.publicacoesPlanejadasPeriodo}\n` +
+    `Publicacoes_Efetivamente_Publicadas;${metricas.marketing.publicacoesPublicadasPeriodo}\n` +
+    `Publicacoes_Atrasadas_Geral;${metricas.marketing.publicacoesAtrasadas}\n\n`
+
   // Seção 6: Comercial
   const secComercial =
     '--- METRICAS COMERCIAIS ---\n' +
@@ -873,6 +1046,7 @@ export function gerarCsvResumoDashboard(metricas: MetricasGerenciaisResultado): 
     secRanking +
     secFormas +
     secEstoque +
+    secMarketing +
     secComercial +
     secFinanceiro
   )

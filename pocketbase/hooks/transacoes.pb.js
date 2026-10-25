@@ -33,6 +33,10 @@ cronAdd('backup_auto_10h_brasilia', '0 13 * * *', () => {
     'categorias_financeiras',
     'lancamentos_financeiros',
     'logs_auditoria',
+    'personas',
+    'leads',
+    'lead_interacoes',
+    'calendario_editorial',
   ]
   const correlationId = 'BK-AUTO-10H-' + Date.now()
   const agoraIso = new Date().toISOString()
@@ -134,6 +138,10 @@ cronAdd('backup_auto_17h_brasilia', '0 20 * * *', () => {
     'categorias_financeiras',
     'lancamentos_financeiros',
     'logs_auditoria',
+    'personas',
+    'leads',
+    'lead_interacoes',
+    'calendario_editorial',
   ]
   const correlationId = 'BK-AUTO-17H-' + Date.now()
   const agoraIso = new Date().toISOString()
@@ -235,6 +243,10 @@ cronAdd('backup_auto_23h_brasilia', '0 2 * * *', () => {
     'categorias_financeiras',
     'lancamentos_financeiros',
     'logs_auditoria',
+    'personas',
+    'leads',
+    'lead_interacoes',
+    'calendario_editorial',
   ]
   const correlationId = 'BK-AUTO-23H-' + Date.now()
   const agoraIso = new Date().toISOString()
@@ -734,6 +746,10 @@ routerAdd('POST', '/backend/v1/sistema/executar-backup-agora', (c) => {
     'categorias_financeiras',
     'lancamentos_financeiros',
     'logs_auditoria',
+    'personas',
+    'leads',
+    'lead_interacoes',
+    'calendario_editorial',
   ]
   const correlationId = 'BK-MANUAL-' + Date.now()
   const agoraIso = new Date().toISOString()
@@ -1049,6 +1065,197 @@ onRecordCreate((e) => {
   }
   e.next()
 }, 'contatos')
+
+// =========================================================================
+// 4. REGRAS E VALIDAÇÕES DO MÓDULO DE MARKETING
+// =========================================================================
+
+// Leads: Validação de telefone E.164, status do funil, motivo de perda e auditoria
+onRecordCreate((e) => {
+  const nome = (e.record.getString('nome') || '').trim()
+  if (!nome || nome.length < 2) {
+    throw new BadRequestError('Nome do lead é obrigatório (mínimo 2 caracteres).')
+  }
+  e.record.set('nome', nome)
+
+  const tel = e.record.getString('telefone_whatsapp') || ''
+  const digitos = tel.replace(/\D/g, '')
+  if (
+    !digitos ||
+    (digitos.length !== 10 &&
+      digitos.length !== 11 &&
+      digitos.length !== 12 &&
+      digitos.length !== 13)
+  ) {
+    throw new BadRequestError(
+      'Telefone/WhatsApp do lead inválido. Informe DDD + número com 10 ou 11 dígitos.',
+    )
+  }
+  const e164 = digitos.length === 10 || digitos.length === 11 ? '+55' + digitos : '+' + digitos
+  e.record.set('telefone_whatsapp', e164)
+
+  const statusFunil = e.record.getString('status_funil')
+  const statusPermitidos = [
+    'novo_contato',
+    'atendimento_iniciado',
+    'orcamento_enviado',
+    'negociacao',
+    'fechado_ganho',
+    'fechado_perdido',
+    'sem_resposta',
+  ]
+  if (!statusPermitidos.includes(statusFunil)) {
+    throw new BadRequestError(`Status do funil '${statusFunil}' inválido.`)
+  }
+
+  if (statusFunil === 'fechado_perdido') {
+    const motivo = (e.record.getString('motivo_perda') || '').trim()
+    if (!motivo) {
+      throw new BadRequestError('Informe o motivo de perda ao marcar o lead como Fechado Perdido.')
+    }
+  }
+
+  if (statusFunil === 'fechado_ganho' && !e.record.getString('data_conversao')) {
+    e.record.set('data_conversao', new Date().toISOString())
+  }
+
+  // Registrar auditoria
+  try {
+    const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
+    const recAudit = new Record(auditCol)
+    recAudit.set('entidade', 'leads')
+    recAudit.set('identificador_registro', e.record.id || 'novo')
+    recAudit.set('campo', 'CRIACAO_LEAD')
+    recAudit.set(
+      'valor_novo',
+      JSON.stringify({
+        nome: nome,
+        telefone_whatsapp: e164,
+        origem: e.record.getString('origem'),
+        status_funil: statusFunil,
+      }),
+    )
+    recAudit.set('usuario', e.record.getString('vendedor_responsavel') || 'sistema')
+    recAudit.set('data_hora', new Date().toISOString())
+    recAudit.set('origem', 'lead_hook')
+    $app.save(recAudit)
+  } catch (_) {}
+
+  e.next()
+}, 'leads')
+
+onRecordUpdate((e) => {
+  const nome = (e.record.getString('nome') || '').trim()
+  if (!nome || nome.length < 2) {
+    throw new BadRequestError('Nome do lead é obrigatório (mínimo 2 caracteres).')
+  }
+  e.record.set('nome', nome)
+
+  const tel = e.record.getString('telefone_whatsapp') || ''
+  const digitos = tel.replace(/\D/g, '')
+  if (
+    !digitos ||
+    (digitos.length !== 10 &&
+      digitos.length !== 11 &&
+      digitos.length !== 12 &&
+      digitos.length !== 13)
+  ) {
+    throw new BadRequestError(
+      'Telefone/WhatsApp do lead inválido. Informe DDD + número com 10 ou 11 dígitos.',
+    )
+  }
+  const e164 = digitos.length === 10 || digitos.length === 11 ? '+55' + digitos : '+' + digitos
+  e.record.set('telefone_whatsapp', e164)
+
+  const statusFunil = e.record.getString('status_funil')
+  const statusPermitidos = [
+    'novo_contato',
+    'atendimento_iniciado',
+    'orcamento_enviado',
+    'negociacao',
+    'fechado_ganho',
+    'fechado_perdido',
+    'sem_resposta',
+  ]
+  if (!statusPermitidos.includes(statusFunil)) {
+    throw new BadRequestError(`Status do funil '${statusFunil}' inválido.`)
+  }
+
+  if (statusFunil === 'fechado_perdido') {
+    const motivo = (e.record.getString('motivo_perda') || '').trim()
+    if (!motivo) {
+      throw new BadRequestError('Informe o motivo de perda ao marcar o lead como Fechado Perdido.')
+    }
+  }
+
+  if (statusFunil === 'fechado_ganho' && !e.record.getString('data_conversao')) {
+    e.record.set('data_conversao', new Date().toISOString())
+  }
+
+  // Se status alterou, registrar na auditoria
+  try {
+    const statusAnt = e.record.original().getString('status_funil')
+    if (statusAnt && statusAnt !== statusFunil) {
+      const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
+      const recAudit = new Record(auditCol)
+      recAudit.set('entidade', 'leads')
+      recAudit.set('identificador_registro', e.record.id)
+      recAudit.set('campo', 'status_funil')
+      recAudit.set('valor_anterior', statusAnt)
+      recAudit.set('valor_novo', statusFunil)
+      recAudit.set('usuario', e.record.getString('vendedor_responsavel') || 'sistema')
+      recAudit.set('data_hora', new Date().toISOString())
+      recAudit.set('origem', 'lead_hook')
+      $app.save(recAudit)
+    }
+  } catch (_) {}
+
+  e.next()
+}, 'leads')
+
+// Lead Interações: atualizar data_ultimo_contato no lead pai
+onRecordCreate((e) => {
+  const leadId = e.record.getString('lead')
+  const dataHora = e.record.getString('data_hora') || new Date().toISOString()
+  if (leadId) {
+    try {
+      const leadRec = $app.findRecordById('leads', leadId)
+      leadRec.set('data_ultimo_contato', dataHora)
+      $app.save(leadRec)
+    } catch (_) {}
+  }
+  e.next()
+}, 'lead_interacoes')
+
+// Calendario Editorial: ao marcar como publicada, registrar data e autor caso ausentes
+onRecordUpdate((e) => {
+  const status = e.record.getString('status')
+  const statusAnt = e.record.original().getString('status')
+
+  if (status === 'publicada') {
+    if (!e.record.getString('data_publicacao_real')) {
+      e.record.set('data_publicacao_real', new Date().toISOString())
+    }
+  }
+
+  if (statusAnt && statusAnt !== status) {
+    try {
+      const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
+      const recAudit = new Record(auditCol)
+      recAudit.set('entidade', 'calendario_editorial')
+      recAudit.set('identificador_registro', e.record.id)
+      recAudit.set('campo', 'status')
+      recAudit.set('valor_anterior', statusAnt)
+      recAudit.set('valor_novo', status)
+      recAudit.set('usuario', e.record.getString('autor_publicacao') || 'sistema')
+      recAudit.set('data_hora', new Date().toISOString())
+      recAudit.set('origem', 'calendario_hook')
+      $app.save(recAudit)
+    } catch (_) {}
+  }
+
+  e.next()
+}, 'calendario_editorial')
 
 onRecordUpdate((e) => {
   const papel = e.record.getString('papel')
@@ -1494,6 +1701,10 @@ routerAdd('POST', '/backend/v1/sistema/exportar-backup', (c) => {
     'categorias_financeiras',
     'lancamentos_financeiros',
     'logs_auditoria',
+    'personas',
+    'leads',
+    'lead_interacoes',
+    'calendario_editorial',
   ]
   const correlationId = 'BK-MANUAL-' + Date.now()
   const agoraIso = new Date().toISOString()

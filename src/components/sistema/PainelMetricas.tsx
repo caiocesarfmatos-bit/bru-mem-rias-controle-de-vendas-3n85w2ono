@@ -23,6 +23,7 @@ import {
   CheckCircle,
   FileSpreadsheet,
   ArrowRight,
+  Megaphone,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -839,6 +840,119 @@ export const PainelMetricas: React.FC = () => {
                 </Card>
               </div>
             </div>
+          )}
+
+          {/* 4.5 MARKETING E FUNIL DE LEADS */}
+          {metricas.marketing && (
+            <Card className="border-[#EEDFD7] bg-white shadow-xs">
+              <CardHeader className="pb-3 border-b border-[#F0E4E0]">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <CardTitle className="text-base font-serif font-bold text-[#3D150B] flex items-center gap-2">
+                    <Megaphone className="w-4 h-4 text-[#E63980]" />
+                    Marketing & Funil Comercial
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-[#3D150B]/70 font-mono">
+                      Pedidos de Leads:{' '}
+                      {formatarCentavosParaReal(metricas.marketing.valorPedidosOriginadosCentavos)}
+                    </span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                {/* 4 Cards de Métricas Reais do Marketing */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="p-3 bg-[#FFF8F4] border border-[#EEDFD7] rounded-lg">
+                    <span className="text-[11px] uppercase font-semibold text-[#3D150B]/60">
+                      Leads Captados
+                    </span>
+                    <p className="text-xl font-bold font-mono text-[#3D150B] mt-1">
+                      {metricas.marketing.totalLeadsPeriodo}
+                    </p>
+                    <p className="text-[10px] text-[#3D150B]/60">
+                      Anterior: {metricas.marketing.totalLeadsAnterior} (
+                      {metricas.marketing.variacaoLeadsPct !== null
+                        ? `${metricas.marketing.variacaoLeadsPct > 0 ? '+' : ''}${metricas.marketing.variacaoLeadsPct}%`
+                        : 'N/A'}
+                      )
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-[#FFF8F4] border border-[#EEDFD7] rounded-lg">
+                    <span className="text-[11px] uppercase font-semibold text-[#3D150B]/60">
+                      Taxa de Conversão
+                    </span>
+                    <p className="text-xl font-bold font-mono text-emerald-700 mt-1">
+                      {metricas.marketing.taxaConversaoLeadsPct !== null
+                        ? `${formatarNumero(metricas.marketing.taxaConversaoLeadsPct)}%`
+                        : '0,0%'}
+                    </p>
+                    <p className="text-[10px] text-[#3D150B]/60">
+                      {metricas.marketing.leadsGanhosPeriodo} fechado(s) ganho(s)
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-[#FFF8F4] border border-[#EEDFD7] rounded-lg">
+                    <span className="text-[11px] uppercase font-semibold text-[#3D150B]/60">
+                      Posts Planejados
+                    </span>
+                    <p className="text-xl font-bold font-mono text-[#3D150B] mt-1">
+                      {metricas.marketing.publicacoesPlanejadasPeriodo}
+                    </p>
+                    <p className="text-[10px] text-[#3D150B]/60">
+                      {metricas.marketing.publicacoesPublicadasPeriodo} publicada(s)
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-[#FFF8F4] border border-[#EEDFD7] rounded-lg">
+                    <span className="text-[11px] uppercase font-semibold text-[#3D150B]/60">
+                      Publicações Atrasadas
+                    </span>
+                    <p
+                      className={`text-xl font-bold font-mono mt-1 ${metricas.marketing.publicacoesAtrasadas > 0 ? 'text-rose-700' : 'text-emerald-700'}`}
+                    >
+                      {metricas.marketing.publicacoesAtrasadas}
+                    </p>
+                    <p className="text-[10px] text-[#3D150B]/60">
+                      {metricas.marketing.publicacoesAtrasadas > 0
+                        ? 'Exigem atenção no ateliê'
+                        : 'Calendário em dia'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Distribuição por Origem do Lead */}
+                <div className="pt-2 border-t border-[#F0E4E0]">
+                  <span className="text-xs font-semibold text-[#3D150B] block mb-2">
+                    Origem dos Contatos Comerciais
+                  </span>
+                  {metricas.marketing.leadsPorOrigem.filter((o) => o.quantidade > 0).length ===
+                  0 ? (
+                    <div className="p-3 bg-[#FFF8F4] rounded text-xs text-[#3D150B]/60 border border-[#EEDFD7]">
+                      Nenhum lead registrado no período selecionado.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {metricas.marketing.leadsPorOrigem
+                        .filter((o) => o.quantidade > 0)
+                        .map((orig) => (
+                          <div
+                            key={orig.origem}
+                            className="p-2 bg-[#FFF8F4] border border-[#EEDFD7] rounded flex items-center justify-between text-xs"
+                          >
+                            <span className="font-medium text-[#3D150B] truncate">
+                              {orig.rotulo}
+                            </span>
+                            <span className="font-mono font-bold text-[#E63980]">
+                              {orig.quantidade} ({formatarNumero(orig.percentual)}%)
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* 5. MÉTRICAS DE PRODUÇÃO / ESTOQUE & CLIENTES */}

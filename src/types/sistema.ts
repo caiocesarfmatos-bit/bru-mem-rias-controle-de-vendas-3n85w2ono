@@ -305,6 +305,128 @@ export interface LancamentoFinanceiro {
   parte_expand?: Pessoa
 }
 
+export type CanalMarketingCodigo =
+  | 'instagram'
+  | 'whatsapp_status'
+  | 'whatsapp_direto'
+  | 'facebook'
+  | 'tiktok'
+  | 'email'
+  | 'feira_evento'
+
+export type TipoConteudoEditorial =
+  | 'promocao'
+  | 'novidade_produto'
+  | 'bastidor_atelie'
+  | 'depoimento_cliente'
+  | 'data_comemorativa'
+  | 'conteudo_educativo'
+
+export type StatusPublicacao =
+  | 'ideia'
+  | 'planejada'
+  | 'producao'
+  | 'pronta'
+  | 'publicada'
+  | 'cancelada'
+
+export type OrigemLead =
+  | 'instagram'
+  | 'indicacao'
+  | 'feira_evento'
+  | 'whatsapp'
+  | 'site_google'
+  | 'outro'
+
+export type StatusFunilLead =
+  | 'novo_contato'
+  | 'atendimento_iniciado'
+  | 'orcamento_enviado'
+  | 'negociacao'
+  | 'fechado_ganho'
+  | 'fechado_perdido'
+  | 'sem_resposta'
+
+export type MotivoPerdaLead = 'preco' | 'prazo' | 'desistiu' | 'sem_resposta' | 'outro'
+
+export type TipoInteracaoLead =
+  | 'mensagem_recebida'
+  | 'mensagem_enviada'
+  | 'ligacao'
+  | 'reuniao_visita'
+  | 'outro'
+
+export interface PersonaCliente {
+  id: string
+  nome: string
+  descricao?: string
+  dores_desejos?: string
+  canais_principais?: string
+  produtos_interesse?: string
+  faixa_valor_centavos?: number
+  ativo?: boolean
+  created?: string
+  updated?: string
+  total_leads?: number
+  total_clientes?: number
+}
+
+export interface LeadInteracao {
+  id: string
+  lead: string
+  data_hora: string
+  tipo: TipoInteracaoLead
+  anotacao: string
+  usuario?: string
+  usuario_expand?: UsuarioSistema
+  created?: string
+  updated?: string
+}
+
+export interface LeadComercial {
+  id: string
+  nome: string
+  telefone_whatsapp: string
+  email?: string
+  origem: OrigemLead
+  interesse?: string
+  status_funil: StatusFunilLead
+  motivo_perda?: MotivoPerdaLead
+  valor_estimado_centavos?: number
+  vendedor_responsavel?: string
+  vendedor_expand?: UsuarioSistema
+  persona?: string
+  persona_expand?: PersonaCliente
+  cliente_convertido?: string
+  cliente_expand?: Pessoa
+  data_conversao?: string
+  data_ultimo_contato?: string
+  observacoes?: string
+  created?: string
+  updated?: string
+  interacoes?: LeadInteracao[]
+  pedidos_vinculados_valor_centavos?: number
+}
+
+export interface ItemCalendarioEditorial {
+  id: string
+  data_prevista: string
+  canal: CanalMarketingCodigo
+  titulo: string
+  descricao?: string
+  tipo_conteudo: TipoConteudoEditorial
+  status: StatusPublicacao
+  data_publicacao_real?: string
+  autor_publicacao?: string
+  autor_expand?: UsuarioSistema
+  produto_relacionado?: string
+  produto_expand?: Produto
+  campanha?: string
+  link_publicacao?: string
+  created?: string
+  updated?: string
+}
+
 export interface LogAuditoria {
   id: string
   entidade: string

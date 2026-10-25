@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-25T22:50:52.845Z",
+  "generatedAt": "2026-10-25T23:19:39.704Z",
   "collections": [
     {
       "name": "users",
@@ -217,6 +217,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "persona",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "personas"
         }
       ],
       "indexes": [
@@ -2143,6 +2150,356 @@
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_ficha_prod_insumo ON fichas_producao (produto, insumo)"]
+    },
+    {
+      "name": "personas",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.perfil = 'administrador' || @request.auth.perfil = 'gestor'",
+        "update": "@request.auth.perfil = 'administrador' || @request.auth.perfil = 'gestor'",
+        "delete": "@request.auth.perfil = 'administrador'"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dores_desejos",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "canais_principais",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "produtos_interesse",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "faixa_valor_centavos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_personas_nome ON personas (nome)"]
+    },
+    {
+      "name": "leads",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (@request.auth.perfil = 'administrador' || @request.auth.perfil = 'gestor' || @request.auth.perfil = 'consulta' || vendedor_responsavel = @request.auth.id || vendedor_responsavel = '')",
+        "view": "@request.auth.id != '' && (@request.auth.perfil = 'administrador' || @request.auth.perfil = 'gestor' || @request.auth.perfil = 'consulta' || vendedor_responsavel = @request.auth.id || vendedor_responsavel = '')",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && (@request.auth.perfil = 'administrador' || @request.auth.perfil = 'gestor' || vendedor_responsavel = @request.auth.id || vendedor_responsavel = '')",
+        "delete": "@request.auth.id != '' && (@request.auth.perfil = 'administrador' || @request.auth.perfil = 'gestor')"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "telefone_whatsapp",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "origem",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "interesse",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status_funil",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "motivo_perda",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "valor_estimado_centavos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "vendedor_responsavel",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "persona",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "personas"
+        },
+        {
+          "name": "cliente_convertido",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "pessoas"
+        },
+        {
+          "name": "data_conversao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_ultimo_contato",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_leads_status ON leads (status_funil)",
+        "CREATE INDEX idx_leads_origem ON leads (origem)",
+        "CREATE INDEX idx_leads_vendedor ON leads (vendedor_responsavel)",
+        "CREATE INDEX idx_leads_ultimo_contato ON leads (data_ultimo_contato)"
+      ]
+    },
+    {
+      "name": "lead_interacoes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && (@request.auth.perfil = 'administrador' || @request.auth.perfil = 'gestor' || usuario = @request.auth.id)",
+        "delete": "@request.auth.id != '' && (@request.auth.perfil = 'administrador' || @request.auth.perfil = 'gestor')"
+      },
+      "fields": [
+        {
+          "name": "lead",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "leads"
+        },
+        {
+          "name": "data_hora",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "tipo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "anotacao",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "usuario",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_lead_interacoes_lead ON lead_interacoes (lead, data_hora DESC)"]
+    },
+    {
+      "name": "calendario_editorial",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.perfil = 'administrador' || @request.auth.perfil = 'gestor' || @request.auth.perfil = 'vendedor'",
+        "update": "@request.auth.perfil = 'administrador' || @request.auth.perfil = 'gestor' || @request.auth.perfil = 'vendedor'",
+        "delete": "@request.auth.perfil = 'administrador' || @request.auth.perfil = 'gestor'"
+      },
+      "fields": [
+        {
+          "name": "data_prevista",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "canal",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo_conteudo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_publicacao_real",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "autor_publicacao",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "produto_relacionado",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "produtos"
+        },
+        {
+          "name": "campanha",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "link_publicacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_cal_data_prevista ON calendario_editorial (data_prevista)",
+        "CREATE INDEX idx_cal_canal ON calendario_editorial (canal)",
+        "CREATE INDEX idx_cal_status ON calendario_editorial (status)"
+      ]
     }
   ]
 }

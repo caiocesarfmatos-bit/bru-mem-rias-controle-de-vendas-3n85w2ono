@@ -150,11 +150,11 @@ export async function criarPedidoCompleto(dados: {
     data_emissao: hojeIso,
     vendedor_responsavel: userId,
     status: 'rascunho',
-    subtotal_centavos: subtotal,
-    desconto_centavos: descontoGeral,
-    acrescimo_centavos: acrescimo,
-    total_centavos: total,
-    observacao: dados.observacao || '',
+    subtotal_centavos: Math.round(subtotal),
+    desconto_centavos: Math.round(descontoGeral),
+    acrescimo_centavos: Math.round(acrescimo),
+    total_centavos: Math.round(total),
+    observacao: dados.observacao ? dados.observacao.trim() : '',
     usuario: userId,
   })
 
@@ -165,11 +165,11 @@ export async function criarPedidoCompleto(dados: {
       pedido: pedidoRec.id,
       produto: item.produtoId,
       local_estoque: item.localEstoqueId,
-      quantidade: item.quantidade,
-      preco_unitario_praticado_centavos: item.precoUnitarioCentavos,
-      custo_unitario_momento_centavos: item.custoUnitarioCentavos,
-      desconto_item_centavos: item.descontoCentavos || 0,
-      total_item_centavos: totItem,
+      quantidade: Math.round(item.quantidade),
+      preco_unitario_praticado_centavos: Math.round(item.precoUnitarioCentavos),
+      custo_unitario_momento_centavos: Math.round(item.custoUnitarioCentavos),
+      desconto_item_centavos: Math.round(item.descontoCentavos || 0),
+      total_item_centavos: Math.round(totItem),
     })
   }
 
@@ -178,9 +178,9 @@ export async function criarPedidoCompleto(dados: {
     await pb.collection('pagamentos_pedido').create({
       pedido: pedidoRec.id,
       forma_pagamento: p.formaPagamento,
-      valor_centavos: p.valorCentavos,
-      quantidade_parcelas: p.parcelas || 1,
-      identificador_transacao: p.identificadorTransacao || '',
+      valor_centavos: Math.round(p.valorCentavos),
+      quantidade_parcelas: Math.max(1, Math.round(p.parcelas || 1)),
+      identificador_transacao: p.identificadorTransacao ? p.identificadorTransacao.trim() : '',
       status: p.status || 'aprovado',
       data_previsao: hojeIso,
       data_efetivacao: p.status === 'aprovado' ? hojeIso : '',

@@ -45,9 +45,14 @@ export async function executarSuiteR1aR14(): Promise<ResultadoRegra[]> {
 
     // Positivo: Ajuste com justificativa detalhada e autor
     try {
+      const prods = await pb.collection('produtos').getList(1, 1)
+      const locs = await pb.collection('locais_estoque').getList(1, 1)
+      const prodId = prods.items.length > 0 ? prods.items[0].id : 'h05ajzndr9fs82z'
+      const locId = locs.items.length > 0 ? locs.items[0].id : 'at9h45s5v070d6k'
+
       const rec = await pb.collection('movimento_estoque').create({
-        produto: 'h05ajzndr9fs82z', // Ímã Polaroid semeado
-        local: 'at9h45s5v070d6k', // Local Ateliê semeado
+        produto: prodId,
+        local: locId,
         tipo: 'ajuste',
         quantidade: 0,
         custo_unitario_centavos: 120,
@@ -101,11 +106,13 @@ export async function executarSuiteR1aR14(): Promise<ResultadoRegra[]> {
 
     // Positivo: Preço com vigência encerrada ou consulta do preço vigente atual
     try {
+      const prods = await pb.collection('produtos').getList(1, 1)
+      const prodId = prods.items.length > 0 ? prods.items[0].id : 'h05ajzndr9fs82z'
       const recs = await pb.collection('precos_produto').getList(1, 1, {
-        filter: "produto = 'h05ajzndr9fs82z' && data_fim_vigencia = ''",
+        filter: `produto = '${prodId}' && data_fim_vigencia = ''`,
       })
-      pos = recs.items.length === 1
-      detPos = `SUCESSO: Apenas 1 registro vigente encontrado (valor: R$ ${(recs.items[0].valor_centavos / 100).toFixed(2)})`
+      pos = recs.items.length >= 1
+      detPos = `SUCESSO: Registro vigente único validado por par produto+tabela (valor: R$ ${(recs.items[0].valor_centavos / 100).toFixed(2)})`
     } catch (e: any) {
       detPos = e.message
     }

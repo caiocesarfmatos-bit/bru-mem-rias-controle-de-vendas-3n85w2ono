@@ -140,12 +140,12 @@ export async function cadastrarProduto(dados: {
   const prodRec = await pb.collection('produtos').create({
     sku: dados.sku.toUpperCase().trim(),
     nome: dados.nome.trim(),
-    descricao_curta: dados.descricao_curta || '',
+    descricao_curta: dados.descricao_curta ? dados.descricao_curta.trim() : '',
     categoria: dados.categoria || '',
-    unidade_compra: dados.unidade_compra || 'UN',
-    unidade_venda: dados.unidade_venda || 'UN',
-    fator_conversao: dados.fator_conversao,
-    estoque_minimo: dados.estoque_minimo || 0,
+    unidade_compra: dados.unidade_compra ? dados.unidade_compra.trim().toUpperCase() : 'UN',
+    unidade_venda: dados.unidade_venda ? dados.unidade_venda.trim().toUpperCase() : 'UN',
+    fator_conversao: Math.round(dados.fator_conversao),
+    estoque_minimo: Math.max(0, Math.round(dados.estoque_minimo || 0)),
     controla_lote: !!dados.controla_lote,
     status: 'ativo',
   })
@@ -157,8 +157,10 @@ export async function cadastrarProduto(dados: {
     await pb.collection('precos_produto').create({
       produto: prodRec.id,
       tabela_preco: tabelaId,
-      valor_centavos: dados.preco_inicial_centavos,
-      preco_minimo_centavos: dados.preco_minimo_centavos || dados.preco_inicial_centavos,
+      valor_centavos: Math.round(dados.preco_inicial_centavos),
+      preco_minimo_centavos: Math.round(
+        dados.preco_minimo_centavos || dados.preco_inicial_centavos,
+      ),
       data_inicio_vigencia: new Date().toISOString(),
       usuario_responsavel: pb.authStore.model?.id || '',
       motivo_alteracao: 'Preço inicial de cadastro',

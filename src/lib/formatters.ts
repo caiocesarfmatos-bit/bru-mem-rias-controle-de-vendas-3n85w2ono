@@ -125,7 +125,7 @@ export function formatarNumero(num: number, casasDecimais?: number): string {
   if (typeof casasDecimais === 'number') {
     return (num || 0).toLocaleString('pt-BR', {
       minimumFractionDigits: casasDecimais,
-      maximumFractionDigits: casasDecimais
+      maximumFractionDigits: casasDecimais,
     })
   }
   return (num || 0).toLocaleString('pt-BR')

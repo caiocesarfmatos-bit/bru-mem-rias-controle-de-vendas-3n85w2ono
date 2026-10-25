@@ -96,25 +96,57 @@ onRecordCreate((e) => {
   e.next()
 }, 'itens_pedido')
 
-// R10: Validações de formato em pessoas (documento)
+// R10: Validações e normalização em pessoas (create)
 onRecordCreate((e) => {
   const doc = e.record.getString('documento')
   const tipo = e.record.getString('tipo_pessoa')
+  const nomeRazao = (e.record.getString('nome_razao_social') || '').trim()
 
-  // Remove caracteres não numéricos
-  const limpo = doc.replace(/\D/g, '')
-  if (tipo === 'FISICA' && limpo.length !== 11) {
-    throw new BadRequestError('R10: CPF deve conter exatamente 11 dígitos numéricos.')
+  if (!nomeRazao || nomeRazao.length < 2) {
+    throw new BadRequestError('Nome / Razão Social é obrigatório (mínimo 2 caracteres).')
   }
-  if (tipo === 'JURIDICA' && limpo.length !== 14) {
-    throw new BadRequestError('R10: CNPJ deve conter exatamente 14 dígitos numéricos.')
+
+  const limpo = (doc || '').replace(/\D/g, '')
+  if (tipo === 'FISICA') {
+    if (limpo.length !== 11 || /^(\d)\1{10}$/.test(limpo)) {
+      throw new BadRequestError('R10: CPF deve conter 11 dígitos numéricos válidos.')
+    }
+  } else if (tipo === 'JURIDICA') {
+    if (limpo.length !== 14 || /^(\d)\1{13}$/.test(limpo)) {
+      throw new BadRequestError('R10: CNPJ deve conter 14 dígitos numéricos válidos.')
+    }
   }
   e.record.set('documento', limpo)
-
+  e.record.set('nome_razao_social', nomeRazao)
   e.next()
 }, 'pessoas')
 
-// R10: Validação de CEP em endereços
+// R10: Validações e normalização em pessoas (update)
+onRecordUpdate((e) => {
+  const doc = e.record.getString('documento')
+  const tipo = e.record.getString('tipo_pessoa')
+  const nomeRazao = (e.record.getString('nome_razao_social') || '').trim()
+
+  if (!nomeRazao || nomeRazao.length < 2) {
+    throw new BadRequestError('Nome / Razão Social é obrigatório (mínimo 2 caracteres).')
+  }
+
+  const limpo = (doc || '').replace(/\D/g, '')
+  if (tipo === 'FISICA') {
+    if (limpo.length !== 11 || /^(\d)\1{10}$/.test(limpo)) {
+      throw new BadRequestError('R10: CPF deve conter 11 dígitos numéricos válidos.')
+    }
+  } else if (tipo === 'JURIDICA') {
+    if (limpo.length !== 14 || /^(\d)\1{13}$/.test(limpo)) {
+      throw new BadRequestError('R10: CNPJ deve conter 14 dígitos numéricos válidos.')
+    }
+  }
+  e.record.set('documento', limpo)
+  e.record.set('nome_razao_social', nomeRazao)
+  e.next()
+}, 'pessoas')
+
+// R10: Validação de CEP em endereços (create)
 onRecordCreate((e) => {
   const cep = e.record.getString('cep')
   const limpo = (cep || '').replace(/\D/g, '')
@@ -122,20 +154,160 @@ onRecordCreate((e) => {
     throw new BadRequestError('R10: CEP deve conter exatamente 8 dígitos numéricos.')
   }
   e.record.set('cep', limpo)
+
+  const logradouro = (e.record.getString('logradouro') || '').trim()
+  if (!logradouro) {
+    throw new BadRequestError('Logradouro do endereço é obrigatório.')
+  }
+  e.record.set('logradouro', logradouro)
   e.next()
 }, 'enderecos')
 
-// R10: Validação de Contatos (Nome obrigatório se for papel recado)
+// R10: Validação de CEP em endereços (update)
+onRecordUpdate((e) => {
+  const cep = e.record.getString('cep')
+  const limpo = (cep || '').replace(/\D/g, '')
+  if (limpo.length !== 8) {
+    throw new BadRequestError('R10: CEP deve conter exatamente 8 dígitos numéricos.')
+  }
+  e.record.set('cep', limpo)
+
+  const logradouro = (e.record.getString('logradouro') || '').trim()
+  if (!logradouro) {
+    throw new BadRequestError('Logradouro do endereço é obrigatório.')
+  }
+  e.record.set('logradouro', logradouro)
+  e.next()
+}, 'enderecos')
+
+// R10: Validação de Contatos (Nome obrigatório se for papel recado + normalização)
 onRecordCreate((e) => {
   const papel = e.record.getString('papel')
-  const nome = e.record.getString('nome_contato')
-  if (papel === 'recado' && (!nome || nome.trim().length < 2)) {
+  const nome = (e.record.getString('nome_contato') || '').trim()
+  if (papel === 'recado' && (!nome || nome.length < 2)) {
     throw new BadRequestError(
       "R10: Contato do papel 'recado' exige nome próprio do destinatário do recado.",
     )
   }
+  if (nome) e.record.set('nome_contato', nome)
+
+  const wpp = e.record.getString('whatsapp')
+  if (wpp) {
+    const digitos = wpp.replace(/\D/g, '')
+    if (digitos) {
+      const e164 = digitos.length === 10 || digitos.length === 11 ? '+55' + digitos : '+' + digitos
+      e.record.set('whatsapp', e164)
+    }
+  }
   e.next()
 }, 'contatos')
+
+onRecordUpdate((e) => {
+  const papel = e.record.getString('papel')
+  const nome = (e.record.getString('nome_contato') || '').trim()
+  if (papel === 'recado' && (!nome || nome.length < 2)) {
+    throw new BadRequestError(
+      "R10: Contato do papel 'recado' exige nome próprio do destinatário do recado.",
+    )
+  }
+  if (nome) e.record.set('nome_contato', nome)
+
+  const wpp = e.record.getString('whatsapp')
+  if (wpp) {
+    const digitos = wpp.replace(/\D/g, '')
+    if (digitos) {
+      const e164 = digitos.length === 10 || digitos.length === 11 ? '+55' + digitos : '+' + digitos
+      e.record.set('whatsapp', e164)
+    }
+  }
+  e.next()
+}, 'contatos')
+
+// Validação server-side de pagamentos de pedidos (Domínio restrito)
+onRecordCreate((e) => {
+  const forma = e.record.getString('forma_pagamento')
+  const permitidas = ['PIX', 'CREDITO', 'DEBITO', 'LINK', 'DINHEIRO']
+  if (!permitidas.includes(forma)) {
+    throw new BadRequestError(
+      "Forma de pagamento '" + forma + "' inválida. Use PIX, CREDITO, DEBITO, LINK ou DINHEIRO.",
+    )
+  }
+  const valor = e.record.getInt('valor_centavos')
+  if (valor <= 0) {
+    throw new BadRequestError(
+      'Valor do pagamento em centavos deve ser estritamente maior que zero.',
+    )
+  }
+  e.next()
+}, 'pagamentos_pedido')
+
+onRecordUpdate((e) => {
+  const forma = e.record.getString('forma_pagamento')
+  const permitidas = ['PIX', 'CREDITO', 'DEBITO', 'LINK', 'DINHEIRO']
+  if (!permitidas.includes(forma)) {
+    throw new BadRequestError(
+      "Forma de pagamento '" + forma + "' inválida. Use PIX, CREDITO, DEBITO, LINK ou DINHEIRO.",
+    )
+  }
+  const valor = e.record.getInt('valor_centavos')
+  if (valor <= 0) {
+    throw new BadRequestError(
+      'Valor do pagamento em centavos deve ser estritamente maior que zero.',
+    )
+  }
+  e.next()
+}, 'pagamentos_pedido')
+
+// Validação server-side de lançamentos financeiros
+onRecordCreate((e) => {
+  const valor = e.record.getInt('valor_centavos')
+  if (valor <= 0) {
+    throw new BadRequestError('Valor do lançamento financeiro em centavos deve ser maior que zero.')
+  }
+  const comp = e.record.getString('data_competencia')
+  if (!comp) {
+    throw new BadRequestError('Data de competência contábil é obrigatória.')
+  }
+  const venc = e.record.getString('data_vencimento')
+  if (!venc) {
+    throw new BadRequestError('Data de vencimento do título financeiro é obrigatória.')
+  }
+  const forma = e.record.getString('forma_pagamento')
+  if (forma) {
+    const permitidas = ['PIX', 'CREDITO', 'DEBITO', 'LINK', 'DINHEIRO']
+    if (!permitidas.includes(forma)) {
+      throw new BadRequestError(
+        "Forma de pagamento '" + forma + "' não reconhecida na tabela de valores.",
+      )
+    }
+  }
+  e.next()
+}, 'lancamentos_financeiros')
+
+onRecordUpdate((e) => {
+  const valor = e.record.getInt('valor_centavos')
+  if (valor <= 0) {
+    throw new BadRequestError('Valor do lançamento financeiro em centavos deve ser maior que zero.')
+  }
+  const comp = e.record.getString('data_competencia')
+  if (!comp) {
+    throw new BadRequestError('Data de competência contábil é obrigatória.')
+  }
+  const venc = e.record.getString('data_vencimento')
+  if (!venc) {
+    throw new BadRequestError('Data de vencimento do título financeiro é obrigatória.')
+  }
+  const forma = e.record.getString('forma_pagamento')
+  if (forma) {
+    const permitidas = ['PIX', 'CREDITO', 'DEBITO', 'LINK', 'DINHEIRO']
+    if (!permitidas.includes(forma)) {
+      throw new BadRequestError(
+        "Forma de pagamento '" + forma + "' não reconhecida na tabela de valores.",
+      )
+    }
+  }
+  e.next()
+}, 'lancamentos_financeiros')
 
 // 2. Rota Transacional Server-Side: Confirmar Pedido de Venda
 // POST /backend/v1/transacoes/confirmar-venda

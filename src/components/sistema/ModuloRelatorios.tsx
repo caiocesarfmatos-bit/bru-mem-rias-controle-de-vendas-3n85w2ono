@@ -35,17 +35,30 @@ export const ModuloRelatorios: React.FC = () => {
     }
   }
 
-  // Exportação CSV segura
+  // Exportação CSV segura com todos os campos auditados
   const exportarCsvVendas = () => {
-    const cabecalho = 'Numero;Data;Cliente;Status;Total_Reais;Formas_Pagamento\n'
+    const cabecalho =
+      'Numero;Data;Cliente;Documento_Cliente;Status;Subtotal_Reais;Desconto_Reais;Acrescimo_Reais;Total_Reais;Qtd_Itens;Formas_Pagamento;Observacao\n'
     const linhas = pedidos
       .map((p) => {
         const formas = (p.pagamentos || []).map((pag) => pag.forma_pagamento).join('+')
-        return `${p.numero_sequencial};"${p.data_emissao}";"${p.cliente_expand?.nome_razao_social || p.cliente}";${p.status};${(p.total_centavos / 100).toFixed(2)};${formas}`
+        const clienteNome = (p.cliente_expand?.nome_razao_social || p.cliente || '').replace(
+          /"/g,
+          '""',
+        )
+        const clienteDoc = (p.cliente_expand?.documento || '').replace(/"/g, '""')
+        const obs = (p.observacao || '').replace(/"/g, '""')
+        const subtotal = (p.subtotal_centavos / 100).toFixed(2).replace('.', ',')
+        const desconto = (p.desconto_centavos / 100).toFixed(2).replace('.', ',')
+        const acrescimo = (p.acrescimo_centavos / 100).toFixed(2).replace('.', ',')
+        const total = (p.total_centavos / 100).toFixed(2).replace('.', ',')
+        const qtdItens = p.itens ? p.itens.reduce((acc, i) => acc + i.quantidade, 0) : 0
+
+        return `${p.numero_sequencial};"${p.data_emissao}";"${clienteNome}";"${clienteDoc}";${p.status};${subtotal};${desconto};${acrescimo};${total};${qtdItens};${formas};"${obs}"`
       })
       .join('\n')
 
-    const blob = new Blob([cabecalho + linhas], { type: 'text/csv;charset=utf-8;' })
+    const blob = new Blob(['\uFEFF' + cabecalho + linhas], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url

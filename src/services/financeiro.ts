@@ -124,7 +124,7 @@ export async function criarLancamentoAvulso(dados: {
   const userId = pb.authStore.model?.id || ''
   const rec = await pb.collection('lancamentos_financeiros').create({
     tipo: dados.tipo,
-    valor_centavos: dados.valorCentavos,
+    valor_centavos: Math.round(dados.valorCentavos),
     moeda: 'BRL',
     conta_financeira: dados.contaId,
     categoria_financeira: dados.categoriaId,
@@ -133,10 +133,10 @@ export async function criarLancamentoAvulso(dados: {
     data_pagamento: dados.dataPagamento || '',
     status: dados.status,
     documento_origem_tipo: 'avulso',
-    forma_pagamento: dados.formaPagamento || '',
+    forma_pagamento: dados.formaPagamento || 'PIX',
     chave_idempotencia: `AVULSO-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
     usuario: userId,
-    observacao: dados.observacao || 'Lançamento avulso',
+    observacao: dados.observacao ? dados.observacao.trim() : 'Lançamento avulso',
   })
 
   return {

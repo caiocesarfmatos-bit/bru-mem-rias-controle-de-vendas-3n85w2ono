@@ -109,7 +109,7 @@ export const Header: React.FC = () => {
         : 'https://bru-memorias-controle-de-vendas-e3d25.goskip.app'
     const shareData = {
       title: 'Bru Memórias | Controle de Vendas',
-      text: 'Controle de vendas da Bru Memórias Personalizados — ímãs 5x5 💖',
+      text: 'Controle de vendas da Bru Memórias Personalizados 💖',
       url: appUrl,
     }
 

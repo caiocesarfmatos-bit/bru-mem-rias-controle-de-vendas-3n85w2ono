@@ -88,7 +88,7 @@ export const Footer: React.FC = () => {
         <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 font-medium">
             <span className="font-brand-script text-base text-[#FF1493]">Bru Memórias</span>
-            <span>© {new Date().getFullYear()} • Ímãs Personalizados 5x5 cm</span>
+            <span>© {new Date().getFullYear()} • Ímãs Personalizados</span>
             <span className="text-[#FF1493]">•</span>
             <span>Recreio dos Bandeirantes, RJ</span>
           </div>

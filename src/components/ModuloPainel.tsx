@@ -182,7 +182,7 @@ export const ModuloPainel: React.FC = () => {
         pct: Math.round((enviados / baseFunil) * 100),
       },
       {
-        nome: '5. Entregue ✨',
+        nome: 'Entregue ✨',
         chave: 'Entregue',
         count: entregues,
         cor: '#2E7D32', // Verde
@@ -308,7 +308,7 @@ export const ModuloPainel: React.FC = () => {
       <div className="bg-white rounded-2xl p-5 border border-[#F0E4E0] shadow-soft-pink flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <span className="text-xs font-bold text-[#FF1493] uppercase tracking-wider block mb-1">
-            Módulo 5 • Painel Integrado de Gestão
+            Painel Integrado de Gestão
           </span>
           <h2 className="text-2xl font-brand-serif font-bold text-[#4E342E]">
             Painel Executivo Bru Memórias

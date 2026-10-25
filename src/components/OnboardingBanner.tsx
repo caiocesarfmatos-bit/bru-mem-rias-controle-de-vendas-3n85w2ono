@@ -132,7 +132,7 @@ export const OnboardingBanner: React.FC = () => {
           className="cursor-pointer bg-white/80 hover:bg-white p-3 rounded-xl border border-[#F0E4E0] hover:border-[#FF1493] transition-all duration-150 group"
         >
           <div className="text-[#FF1493] font-bold text-xs mb-1 flex items-center justify-between">
-            <span>5. Painel</span>
+            <span>Painel</span>
             <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
           </div>
           <p className="text-[11px] text-[#4E342E]/75 leading-tight">

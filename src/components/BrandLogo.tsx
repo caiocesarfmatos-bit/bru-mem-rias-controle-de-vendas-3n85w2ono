@@ -63,7 +63,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
         </div>
         {showTagline && (
           <span className="text-[11px] font-medium text-[#4E342E]/80 tracking-wide mt-1 flex items-center gap-1">
-            <span>Ímãs Personalizados 5x5</span>
+            <span>Ímãs Personalizados</span>
             <span className="text-[#FF1493] font-bold">•</span>
             <span>Rio de Janeiro</span>
           </span>

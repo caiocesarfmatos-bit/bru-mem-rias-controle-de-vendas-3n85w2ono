@@ -160,3 +160,90 @@ export function exportarCsvFornecedores(dados: AppData): void {
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
 }
+
+export function exportarCsvEstoque(dados: AppData): void {
+  const insumos = dados.estoque?.insumos || []
+  const header = [
+    'Insumo',
+    'Categoria',
+    'Qtd Atual',
+    'Unidade',
+    'Custo Médio Unitário (R$)',
+    'Valor Total em Estoque (R$)',
+    'Estoque Mínimo',
+    'Status Estoque',
+  ]
+
+  const rows = insumos.map((item) => {
+    const valorTotal = item.quantidadeAtual * item.custoMedioUnitario
+    const status = item.quantidadeAtual <= item.estoqueMinimo ? 'ALERTA BAIXO' : 'Normal'
+    return [
+      `"${item.nome.replace(/"/g, '""')}"`,
+      `"${item.categoria || 'Geral'}"`,
+      `"${item.quantidadeAtual}"`,
+      `"${item.unidade}"`,
+      `"${formatarMoeda(item.custoMedioUnitario).replace('R$', '').trim()}"`,
+      `"${formatarMoeda(valorTotal).replace('R$', '').trim()}"`,
+      `"${item.estoqueMinimo}"`,
+      `"${status}"`,
+    ].join(';')
+  })
+
+  const csvContent = '\uFEFF' + [header.join(';'), ...rows].join('\r\n')
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute(
+    'download',
+    `bru-memorias-estoque-${new Date().toISOString().split('T')[0]}.csv`,
+  )
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+export function exportarCsvMovimentacoesEstoque(dados: AppData): void {
+  const movs = dados.estoque?.movimentacoes || []
+  const header = [
+    'ID Movimentação',
+    'Data',
+    'Item / Insumo',
+    'Tipo',
+    'Quantidade',
+    'Custo Unitário (R$)',
+    'Valor Total Movimentado (R$)',
+    'Motivo',
+    'Observação',
+  ]
+
+  const rows = movs.map((m) => {
+    const valorTotal = (m.custoUnitario || 0) * m.quantidade
+    return [
+      `"${m.id}"`,
+      `"${formatarDataPtBR(m.data)}"`,
+      `"${m.itemNome.replace(/"/g, '""')}"`,
+      `"${m.tipo === 'entrada' ? 'Entrada' : 'Saída'}"`,
+      `"${m.quantidade}"`,
+      `"${m.custoUnitario ? formatarMoeda(m.custoUnitario).replace('R$', '').trim() : '-'}"`,
+      `"${valorTotal > 0 ? formatarMoeda(valorTotal).replace('R$', '').trim() : '-'}"`,
+      `"${m.motivo}"`,
+      `"${(m.observacao || '').replace(/"/g, '""')}"`,
+    ].join(';')
+  })
+
+  const csvContent = '\uFEFF' + [header.join(';'), ...rows].join('\r\n')
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute(
+    'download',
+    `bru-memorias-movimentacoes-estoque-${new Date().toISOString().split('T')[0]}.csv`,
+  )
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}

@@ -1,6 +1,6 @@
 // Tipos e modelos de dados para o Bru Memórias | Controle de Vendas
 
-export type TabId = 'custos' | 'calculadora' | 'clientes' | 'fornecedores' | 'painel'
+export type TabId = 'custos' | 'calculadora' | 'clientes' | 'fornecedores' | 'estoque' | 'painel'
 
 export interface CustoLancamento {
   id: string
@@ -89,6 +89,7 @@ export type AuditModulo =
   | 'Calculadora'
   | 'Clientes'
   | 'Fornecedores'
+  | 'Estoque'
   | 'Painel'
   | 'Sistema'
 
@@ -107,9 +108,61 @@ export interface AppSettings {
   abaAtiva: TabId
 }
 
+export type TipoMovimentacaoEstoque = 'entrada' | 'saida'
+export type MotivoMovimentacaoEstoque =
+  | 'compra'
+  | 'producao'
+  | 'venda'
+  | 'ajuste_perda'
+  | 'devolucao'
+
+export interface MovimentacaoEstoque {
+  id: string
+  itemId: string // id do insumo em estoque
+  itemNome: string
+  data: string // YYYY-MM-DD
+  tipo: TipoMovimentacaoEstoque
+  quantidade: number
+  custoUnitario?: number // custo pago por unidade em caso de compra/entrada
+  motivo: MotivoMovimentacaoEstoque
+  observacao?: string
+  refletirEmCustos?: boolean // se refletiu ou pode refletir no histórico de custos
+  criadoEm: string // ISO
+}
+
+export interface InsumoEstoque {
+  id: string
+  nome: string
+  categoria?: string
+  unidade: string // un, pacote, folha, metro, pct, kit, etc.
+  quantidadeAtual: number
+  custoMedioUnitario: number
+  estoqueMinimo: number
+  criadoEm: string
+}
+
+export interface ProdutoProntoItem {
+  id: string
+  produtoId: string // vínculo com produto de custos se houver
+  produtoNome: string
+  quantidadeProduzida: number
+  quantidadeVendida: number // calculada ou informada
+  quantidadeDisponivel: number // produzida - vendida
+  custoEstimadoUnitario: number // espelho/sincronizado do módulo Custos
+  observacao?: string
+  atualizadoEm: string
+}
+
+export interface EstoqueData {
+  insumos: InsumoEstoque[]
+  movimentacoes: MovimentacaoEstoque[]
+  produtosProntos: ProdutoProntoItem[]
+}
+
 export interface AppData {
   produtos: ProdutoKit[]
   clientes: Cliente[]
   fornecedores: Fornecedor[]
+  estoque?: EstoqueData
   version: number
 }

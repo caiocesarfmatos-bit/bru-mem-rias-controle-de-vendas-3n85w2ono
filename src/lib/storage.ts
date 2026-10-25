@@ -1,4 +1,15 @@
-import { AppData, AuditEntry, AppSettings, ProdutoKit, Fornecedor, Cliente } from '@/types/app'
+import {
+  AppData,
+  AuditEntry,
+  AppSettings,
+  ProdutoKit,
+  Fornecedor,
+  Cliente,
+  EstoqueData,
+  InsumoEstoque,
+  MovimentacaoEstoque,
+  ProdutoProntoItem,
+} from '@/types/app'
 
 export const STORAGE_KEYS = {
   DATA: 'bru-memorias.data.v1',
@@ -569,6 +580,180 @@ export const AUDIT_PADRAO: AuditEntry[] = [
   },
 ]
 
+// Insumos iniciais de estoque derivados dos itens de custo padrão
+export const INSUMOS_ESTOQUE_PADRAO: InsumoEstoque[] = [
+  {
+    id: 'est-placa-magnetica',
+    nome: 'Placa magnética',
+    categoria: 'Base',
+    unidade: 'folha',
+    quantidadeAtual: 85,
+    custoMedioUnitario: 0.6,
+    estoqueMinimo: 30,
+    criadoEm: '2025-01-10T10:00:00.000Z',
+  },
+  {
+    id: 'est-impressao-foto',
+    nome: 'Impressão da foto',
+    categoria: 'Impressão',
+    unidade: 'un',
+    quantidadeAtual: 140,
+    custoMedioUnitario: 0.45,
+    estoqueMinimo: 50,
+    criadoEm: '2025-01-10T10:00:00.000Z',
+  },
+  {
+    id: 'est-papel-adesivo',
+    nome: 'Papel/adesivo fotográfico',
+    categoria: 'Papelaria',
+    unidade: 'folha',
+    quantidadeAtual: 18, // Estoque baixo para demonstração inicial do alerta
+    custoMedioUnitario: 0.25,
+    estoqueMinimo: 25,
+    criadoEm: '2025-01-10T10:00:00.000Z',
+  },
+  {
+    id: 'est-laminacao',
+    nome: 'Laminação',
+    categoria: 'Acabamento',
+    unidade: 'metro',
+    quantidadeAtual: 50,
+    custoMedioUnitario: 0.15,
+    estoqueMinimo: 20,
+    criadoEm: '2025-01-10T10:00:00.000Z',
+  },
+  {
+    id: 'est-corte-acabamento',
+    nome: 'Corte e acabamento',
+    categoria: 'Acabamento',
+    unidade: 'un',
+    quantidadeAtual: 200,
+    custoMedioUnitario: 0.2,
+    estoqueMinimo: 40,
+    criadoEm: '2025-01-10T10:00:00.000Z',
+  },
+  {
+    id: 'est-bolsinha-organza',
+    nome: 'Bolsinha de organza',
+    categoria: 'Embalagem',
+    unidade: 'un',
+    quantidadeAtual: 12, // Estoque baixo
+    custoMedioUnitario: 0.18,
+    estoqueMinimo: 30,
+    criadoEm: '2025-01-10T10:00:00.000Z',
+  },
+  {
+    id: 'est-etiqueta',
+    nome: 'Etiqueta',
+    categoria: 'Embalagem',
+    unidade: 'un',
+    quantidadeAtual: 95,
+    custoMedioUnitario: 0.12,
+    estoqueMinimo: 30,
+    criadoEm: '2025-01-10T10:00:00.000Z',
+  },
+  {
+    id: 'est-embalagem-envio',
+    nome: 'Embalagem de envio',
+    categoria: 'Embalagem',
+    unidade: 'un',
+    quantidadeAtual: 35,
+    custoMedioUnitario: 0.35,
+    estoqueMinimo: 20,
+    criadoEm: '2025-01-10T10:00:00.000Z',
+  },
+]
+
+export const MOVIMENTACOES_ESTOQUE_PADRAO: MovimentacaoEstoque[] = [
+  {
+    id: 'mov-1',
+    itemId: 'est-placa-magnetica',
+    itemNome: 'Placa magnética',
+    data: '2025-02-05',
+    tipo: 'entrada',
+    quantidade: 100,
+    custoUnitario: 0.6,
+    motivo: 'compra',
+    observacao: 'Compra Bazar Barra Bonita - Recreio',
+    criadoEm: '2025-02-05T14:00:00.000Z',
+  },
+  {
+    id: 'mov-2',
+    itemId: 'est-placa-magnetica',
+    itemNome: 'Placa magnética',
+    data: '2025-02-10',
+    tipo: 'saida',
+    quantidade: 15,
+    motivo: 'producao',
+    observacao: 'Produção pedido Camila Mendonça',
+    criadoEm: '2025-02-10T15:30:00.000Z',
+  },
+  {
+    id: 'mov-3',
+    itemId: 'est-papel-adesivo',
+    itemNome: 'Papel/adesivo fotográfico',
+    data: '2025-02-12',
+    tipo: 'saida',
+    quantidade: 32,
+    motivo: 'producao',
+    observacao: 'Produção lembrancinhas aniversário',
+    criadoEm: '2025-02-12T11:00:00.000Z',
+  },
+  {
+    id: 'mov-4',
+    itemId: 'est-bolsinha-organza',
+    itemNome: 'Bolsinha de organza',
+    data: '2025-02-18',
+    tipo: 'saida',
+    quantidade: 40,
+    motivo: 'venda',
+    observacao: 'Envio pedido Juliana Siqueira',
+    criadoEm: '2025-02-18T16:00:00.000Z',
+  },
+]
+
+export const PRODUTOS_PRONTOS_PADRAO: ProdutoProntoItem[] = [
+  {
+    id: 'pp-ima-5x5-avulso',
+    produtoId: 'prod-ima-5x5-avulso',
+    produtoNome: 'Ímã 5x5 Avulso',
+    quantidadeProduzida: 65,
+    quantidadeVendida: 52,
+    quantidadeDisponivel: 13,
+    custoEstimadoUnitario: 3.2,
+    observacao: 'Prontos para pronta entrega na feirinha ou direct',
+    atualizadoEm: new Date().toISOString(),
+  },
+  {
+    id: 'pp-kit-3-imas',
+    produtoId: 'prod-kit-3-imas',
+    produtoNome: 'Kit 3 Ímãs',
+    quantidadeProduzida: 15,
+    quantidadeVendida: 9,
+    quantidadeDisponivel: 6,
+    custoEstimadoUnitario: 8.64,
+    observacao: 'Montados em bolsinhas de organza',
+    atualizadoEm: new Date().toISOString(),
+  },
+  {
+    id: 'pp-ima-festa',
+    produtoId: 'prod-ima-festa',
+    produtoNome: 'Ímã Festa (Lembrancinha)',
+    quantidadeProduzida: 120,
+    quantidadeVendida: 100,
+    quantidadeDisponivel: 20,
+    custoEstimadoUnitario: 2.72,
+    observacao: 'Sobras de lote para mostruário',
+    atualizadoEm: new Date().toISOString(),
+  },
+]
+
+export const ESTOQUE_PADRAO: EstoqueData = {
+  insumos: INSUMOS_ESTOQUE_PADRAO,
+  movimentacoes: MOVIMENTACOES_ESTOQUE_PADRAO,
+  produtosProntos: PRODUTOS_PRONTOS_PADRAO,
+}
+
 export const SETTINGS_PADRAO: AppSettings = {
   margemMinimaPct: 40,
   produtoAtivoId: 'prod-ima-5x5-avulso',
@@ -581,30 +766,33 @@ export function carregarDados(): AppData {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.DATA)
     if (!raw) {
-      salvarDados({
+      const inicial: AppData = {
         produtos: PRODUTOS_PADRAO,
         clientes: CLIENTES_PADRAO,
         fornecedores: FORNECEDORES_PADRAO,
-        version: 1,
-      })
-      return {
-        produtos: PRODUTOS_PADRAO,
-        clientes: CLIENTES_PADRAO,
-        fornecedores: FORNECEDORES_PADRAO,
+        estoque: ESTOQUE_PADRAO,
         version: 1,
       }
+      salvarDados(inicial)
+      return inicial
     }
     const parsed = JSON.parse(raw) as AppData
     if (!parsed.produtos || !Array.isArray(parsed.produtos)) {
       throw new Error('Formato inválido')
     }
+    // Garante retrocompatibilidade se a propriedade estoque ainda não existir no localStorage existente
+    if (!parsed.estoque || !Array.isArray(parsed.estoque.insumos)) {
+      parsed.estoque = ESTOQUE_PADRAO
+      salvarDados(parsed)
+    }
     return parsed
   } catch (err) {
     console.warn('Dados corrompidos no localStorage. Restaurando padrões.', err)
-    const defaults = {
+    const defaults: AppData = {
       produtos: PRODUTOS_PADRAO,
       clientes: CLIENTES_PADRAO,
       fornecedores: FORNECEDORES_PADRAO,
+      estoque: ESTOQUE_PADRAO,
       version: 1,
     }
     salvarDados(defaults)

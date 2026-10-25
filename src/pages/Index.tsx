@@ -5,6 +5,7 @@ import { ModuloCustos } from '@/components/ModuloCustos'
 import { ModuloCalculadora } from '@/components/ModuloCalculadora'
 import { ModuloClientes } from '@/components/ModuloClientes'
 import { ModuloFornecedores } from '@/components/ModuloFornecedores'
+import { ModuloEstoque } from '@/components/ModuloEstoque'
 import { ModuloPainel } from '@/components/ModuloPainel'
 
 const Index: React.FC = () => {
@@ -20,6 +21,7 @@ const Index: React.FC = () => {
       {activeTab === 'calculadora' && <ModuloCalculadora />}
       {activeTab === 'clientes' && <ModuloClientes />}
       {activeTab === 'fornecedores' && <ModuloFornecedores />}
+      {activeTab === 'estoque' && <ModuloEstoque />}
       {activeTab === 'painel' && <ModuloPainel />}
     </div>
   )

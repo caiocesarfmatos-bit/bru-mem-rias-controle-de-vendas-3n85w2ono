@@ -10,6 +10,10 @@ import {
   PedidoCliente,
   Cliente,
   Fornecedor,
+  InsumoEstoque,
+  MovimentacaoEstoque,
+  ProdutoProntoItem,
+  EstoqueData,
 } from '@/types/app'
 import {
   carregarDados,
@@ -24,6 +28,7 @@ import {
   CLIENTES_PADRAO,
   AUDIT_PADRAO,
   SETTINGS_PADRAO,
+  ESTOQUE_PADRAO,
 } from '@/lib/storage'
 import { sanitizarTexto } from '@/lib/formatters'
 
@@ -70,6 +75,19 @@ interface AppContextType {
   addFornecedor: (fornecedor: Omit<Fornecedor, 'id' | 'criadoEm'>) => void
   updateFornecedor: (id: string, fornecedor: Partial<Fornecedor>) => void
   deleteFornecedor: (id: string) => void
+
+  // MÓDULO 6: ESTOQUE
+  addInsumoEstoque: (insumo: Omit<InsumoEstoque, 'id' | 'criadoEm'>) => InsumoEstoque
+  updateInsumoEstoque: (id: string, insumo: Partial<InsumoEstoque>) => void
+  deleteInsumoEstoque: (id: string) => void
+  addMovimentacaoEstoque: (
+    mov: Omit<MovimentacaoEstoque, 'id' | 'criadoEm'>,
+    opcoes?: { refletirEmCustos?: boolean; custoItemId?: string },
+  ) => void
+  editMovimentacaoEstoque: (id: string, mov: Omit<MovimentacaoEstoque, 'id' | 'criadoEm'>) => void
+  deleteMovimentacaoEstoque: (id: string) => void
+  updateProdutoPronto: (id: string, item: Partial<ProdutoProntoItem>) => void
+  addProdutoPronto: (item: Omit<ProdutoProntoItem, 'id' | 'atualizadoEm'>) => void
 
   // Configurações e Backup
   updateSettings: (newSettings: Partial<AppSettings>) => void
@@ -480,6 +498,395 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     logAudit('Fornecedores', 'Fornecedor excluído', `Fornecedor "${nome}" excluído.`)
   }
 
+  // --- MÓDULO 6: ESTOQUE ---
+
+  // Função auxiliar para recalcular saldo e custo médio de um insumo com base no histórico de movimentações
+  const recalcularInsumo = (
+    insumoAtual: InsumoEstoque,
+    todasMovs: MovimentacaoEstoque[],
+  ): InsumoEstoque => {
+    const movsItem = todasMovs
+      .filter((m) => m.itemId === insumoAtual.id)
+      .sort((a, b) =>
+        a.data > b.data ? 1 : a.data < b.data ? -1 : a.criadoEm > b.criadoEm ? 1 : -1,
+      )
+
+    let saldo = 0
+    let valorAcumulado = 0
+    let custoMedio = insumoAtual.custoMedioUnitario || 0
+
+    for (const m of movsItem) {
+      if (m.tipo === 'entrada') {
+        const precoEntrada =
+          m.custoUnitario !== undefined && m.custoUnitario >= 0 ? m.custoUnitario : custoMedio
+        const novoSaldo = saldo + m.quantidade
+        if (novoSaldo > 0) {
+          valorAcumulado = saldo * custoMedio + m.quantidade * precoEntrada
+          custoMedio = valorAcumulado / novoSaldo
+        }
+        saldo = Math.max(0, novoSaldo)
+      } else {
+        // saída
+        saldo = Math.max(0, saldo - m.quantidade)
+        valorAcumulado = saldo * custoMedio
+      }
+    }
+
+    // Se não houver movimentações cadastradas, mantém a quantidade informada do insumo
+    if (movsItem.length === 0) {
+      return insumoAtual
+    }
+
+    return {
+      ...insumoAtual,
+      quantidadeAtual: Number(saldo.toFixed(2)),
+      custoMedioUnitario: Number(custoMedio.toFixed(2)),
+    }
+  }
+
+  const addInsumoEstoque = (insumo: Omit<InsumoEstoque, 'id' | 'criadoEm'>): InsumoEstoque => {
+    const novoId = 'est-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4)
+    const novo: InsumoEstoque = {
+      id: novoId,
+      nome: sanitizarTexto(insumo.nome),
+      categoria: insumo.categoria ? sanitizarTexto(insumo.categoria) : 'Insumo',
+      unidade: sanitizarTexto(insumo.unidade) || 'un',
+      quantidadeAtual: Math.max(0, insumo.quantidadeAtual || 0),
+      custoMedioUnitario: Math.max(0, insumo.custoMedioUnitario || 0),
+      estoqueMinimo: Math.max(0, insumo.estoqueMinimo || 0),
+      criadoEm: new Date().toISOString(),
+    }
+
+    setData((prev) => {
+      const estoqueAtual = prev.estoque || ESTOQUE_PADRAO
+      return {
+        ...prev,
+        estoque: {
+          ...estoqueAtual,
+          insumos: [...estoqueAtual.insumos, novo],
+        },
+      }
+    })
+
+    logAudit(
+      'Estoque',
+      'Insumo adicionado',
+      `Insumo "${novo.nome}" cadastrado com estoque inicial de ${novo.quantidadeAtual} ${novo.unidade} e mínimo de ${novo.estoqueMinimo}.`,
+    )
+
+    return novo
+  }
+
+  const updateInsumoEstoque = (id: string, insumo: Partial<InsumoEstoque>) => {
+    setData((prev) => {
+      const estoqueAtual = prev.estoque || ESTOQUE_PADRAO
+      const insumosAtualizados = estoqueAtual.insumos.map((item) => {
+        if (item.id !== id) return item
+        return {
+          ...item,
+          nome: insumo.nome !== undefined ? sanitizarTexto(insumo.nome) : item.nome,
+          categoria:
+            insumo.categoria !== undefined ? sanitizarTexto(insumo.categoria) : item.categoria,
+          unidade: insumo.unidade !== undefined ? sanitizarTexto(insumo.unidade) : item.unidade,
+          quantidadeAtual:
+            insumo.quantidadeAtual !== undefined
+              ? Math.max(0, insumo.quantidadeAtual)
+              : item.quantidadeAtual,
+          custoMedioUnitario:
+            insumo.custoMedioUnitario !== undefined
+              ? Math.max(0, insumo.custoMedioUnitario)
+              : item.custoMedioUnitario,
+          estoqueMinimo:
+            insumo.estoqueMinimo !== undefined
+              ? Math.max(0, insumo.estoqueMinimo)
+              : item.estoqueMinimo,
+        }
+      })
+      return {
+        ...prev,
+        estoque: {
+          ...estoqueAtual,
+          insumos: insumosAtualizados,
+        },
+      }
+    })
+
+    logAudit('Estoque', 'Insumo atualizado', `Insumo ${id} atualizado.`)
+  }
+
+  const deleteInsumoEstoque = (id: string) => {
+    const estoqueAtual = data.estoque || ESTOQUE_PADRAO
+    const insumoNome = estoqueAtual.insumos.find((i) => i.id === id)?.nome || id
+
+    setData((prev) => {
+      const est = prev.estoque || ESTOQUE_PADRAO
+      return {
+        ...prev,
+        estoque: {
+          ...est,
+          insumos: est.insumos.filter((i) => i.id !== id),
+          movimentacoes: est.movimentacoes.filter((m) => m.itemId !== id),
+        },
+      }
+    })
+
+    logAudit(
+      'Estoque',
+      'Insumo excluído',
+      `Insumo "${insumoNome}" e suas movimentações foram excluídos do estoque.`,
+    )
+  }
+
+  const addMovimentacaoEstoque = (
+    mov: Omit<MovimentacaoEstoque, 'id' | 'criadoEm'>,
+    opcoes?: { refletirEmCustos?: boolean; custoItemId?: string },
+  ) => {
+    const novoId = 'mov-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4)
+    const novaMov: MovimentacaoEstoque = {
+      ...mov,
+      id: novoId,
+      quantidade: Math.max(0, mov.quantidade || 0),
+      custoUnitario: mov.custoUnitario !== undefined ? Math.max(0, mov.custoUnitario) : undefined,
+      observacao: mov.observacao ? sanitizarTexto(mov.observacao) : '',
+      refletirEmCustos: Boolean(opcoes?.refletirEmCustos),
+      criadoEm: new Date().toISOString(),
+    }
+
+    setData((prev) => {
+      const est = prev.estoque || ESTOQUE_PADRAO
+      const novasMovs = [novaMov, ...est.movimentacoes]
+
+      // Atualizar saldo e custo médio do insumo correspondente
+      const insumosAtualizados = est.insumos.map((item) => {
+        if (item.id !== novaMov.itemId) return item
+        let novoSaldo = item.quantidadeAtual
+        let novoCustoMedio = item.custoMedioUnitario
+
+        if (novaMov.tipo === 'entrada') {
+          const valorAnterior = novoSaldo * novoCustoMedio
+          const precoCompra =
+            novaMov.custoUnitario !== undefined ? novaMov.custoUnitario : novoCustoMedio
+          const valorNovaEntrada = novaMov.quantidade * precoCompra
+          novoSaldo = novoSaldo + novaMov.quantidade
+          if (novoSaldo > 0) {
+            novoCustoMedio = (valorAnterior + valorNovaEntrada) / novoSaldo
+          }
+        } else {
+          novoSaldo = Math.max(0, novoSaldo - novaMov.quantidade)
+        }
+
+        return {
+          ...item,
+          quantidadeAtual: Number(novoSaldo.toFixed(2)),
+          custoMedioUnitario: Number(novoCustoMedio.toFixed(2)),
+        }
+      })
+
+      // Se solicitado refletir em Custos e for entrada com custo pago
+      let novosProdutos = prev.produtos
+      if (opcoes?.refletirEmCustos && novaMov.tipo === 'entrada' && novaMov.custoUnitario) {
+        const custoTotalCompra = novaMov.quantidade * novaMov.custoUnitario
+        // Localiza item correspondente pelo nome ou id
+        const alvoItemId =
+          opcoes.custoItemId ||
+          activeProduct.itens.find(
+            (it) =>
+              it.nome.toLowerCase() === novaMov.itemNome.toLowerCase() ||
+              novaMov.itemId.includes(it.id),
+          )?.id
+
+        if (alvoItemId) {
+          const lanc: CustoLancamento = {
+            id: 'lanc-est-' + Date.now(),
+            data: novaMov.data,
+            descricao: `Entrada estoque (${novaMov.quantidade} un): ${novaMov.observacao || 'Compra'}`,
+            valor: Number(custoTotalCompra.toFixed(2)),
+            criadoEm: new Date().toISOString(),
+          }
+
+          novosProdutos = prev.produtos.map((p) => {
+            if (p.id !== activeProduct.id) return p
+            return {
+              ...p,
+              itens: p.itens.map((it) =>
+                it.id === alvoItemId ? { ...it, lancamentos: [lanc, ...it.lancamentos] } : it,
+              ),
+            }
+          })
+        }
+      }
+
+      return {
+        ...prev,
+        produtos: novosProdutos,
+        estoque: {
+          ...est,
+          insumos: insumosAtualizados,
+          movimentacoes: novasMovs,
+        },
+      }
+    })
+
+    const tipoStr = novaMov.tipo === 'entrada' ? 'Entrada' : 'Saída'
+    logAudit(
+      'Estoque',
+      `Movimentação registrada (${tipoStr})`,
+      `${tipoStr} de ${novaMov.quantidade} no item "${novaMov.itemNome}" (Motivo: ${novaMov.motivo}).`,
+    )
+  }
+
+  const editMovimentacaoEstoque = (
+    id: string,
+    mov: Omit<MovimentacaoEstoque, 'id' | 'criadoEm'>,
+  ) => {
+    setData((prev) => {
+      const est = prev.estoque || ESTOQUE_PADRAO
+      const novasMovs = est.movimentacoes.map((m) => {
+        if (m.id !== id) return m
+        return {
+          ...m,
+          itemId: mov.itemId,
+          itemNome: mov.itemNome,
+          data: mov.data,
+          tipo: mov.tipo,
+          quantidade: Math.max(0, mov.quantidade),
+          custoUnitario:
+            mov.custoUnitario !== undefined ? Math.max(0, mov.custoUnitario) : undefined,
+          motivo: mov.motivo,
+          observacao: mov.observacao ? sanitizarTexto(mov.observacao) : '',
+        }
+      })
+
+      // Recalcular todos os insumos afetados
+      const insumosAtualizados = est.insumos.map((item) => recalcularInsumo(item, novasMovs))
+
+      return {
+        ...prev,
+        estoque: {
+          ...est,
+          insumos: insumosAtualizados,
+          movimentacoes: novasMovs,
+        },
+      }
+    })
+
+    logAudit(
+      'Estoque',
+      'Movimentação editada',
+      `Movimentação ${id} atualizada com recálculo de saldo.`,
+    )
+  }
+
+  const deleteMovimentacaoEstoque = (id: string) => {
+    const est = data.estoque || ESTOQUE_PADRAO
+    const mov = est.movimentacoes.find((m) => m.id === id)
+
+    setData((prev) => {
+      const atualEst = prev.estoque || ESTOQUE_PADRAO
+      const novasMovs = atualEst.movimentacoes.filter((m) => m.id !== id)
+      const insumosAtualizados = atualEst.insumos.map((item) => recalcularInsumo(item, novasMovs))
+
+      return {
+        ...prev,
+        estoque: {
+          ...atualEst,
+          insumos: insumosAtualizados,
+          movimentacoes: novasMovs,
+        },
+      }
+    })
+
+    logAudit(
+      'Estoque',
+      'Movimentação excluída',
+      `Movimentação de ${mov?.tipo || ''} (${mov?.quantidade || 0} un) de "${mov?.itemNome || id}" removida com recálculo de saldo.`,
+    )
+  }
+
+  const updateProdutoPronto = (id: string, item: Partial<ProdutoProntoItem>) => {
+    setData((prev) => {
+      const est = prev.estoque || ESTOQUE_PADRAO
+      const produtosAtualizados = est.produtosProntos.map((pp) => {
+        if (pp.id !== id) return pp
+        const prod =
+          item.quantidadeProduzida !== undefined
+            ? Math.max(0, item.quantidadeProduzida)
+            : pp.quantidadeProduzida
+        const vend =
+          item.quantidadeVendida !== undefined
+            ? Math.max(0, item.quantidadeVendida)
+            : pp.quantidadeVendida
+        const disp =
+          item.quantidadeDisponivel !== undefined
+            ? Math.max(0, item.quantidadeDisponivel)
+            : Math.max(0, prod - vend)
+
+        return {
+          ...pp,
+          produtoNome:
+            item.produtoNome !== undefined ? sanitizarTexto(item.produtoNome) : pp.produtoNome,
+          quantidadeProduzida: prod,
+          quantidadeVendida: vend,
+          quantidadeDisponivel: disp,
+          custoEstimadoUnitario:
+            item.custoEstimadoUnitario !== undefined
+              ? Math.max(0, item.custoEstimadoUnitario)
+              : pp.custoEstimadoUnitario,
+          observacao:
+            item.observacao !== undefined ? sanitizarTexto(item.observacao) : pp.observacao,
+          atualizadoEm: new Date().toISOString(),
+        }
+      })
+
+      return {
+        ...prev,
+        estoque: {
+          ...est,
+          produtosProntos: produtosAtualizados,
+        },
+      }
+    })
+
+    logAudit('Estoque', 'Produto pronto atualizado', `Estoque de produto acabado ${id} atualizado.`)
+  }
+
+  const addProdutoPronto = (item: Omit<ProdutoProntoItem, 'id' | 'atualizadoEm'>) => {
+    const novoId = 'pp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4)
+    const novo: ProdutoProntoItem = {
+      ...item,
+      id: novoId,
+      produtoNome: sanitizarTexto(item.produtoNome),
+      quantidadeProduzida: Math.max(0, item.quantidadeProduzida || 0),
+      quantidadeVendida: Math.max(0, item.quantidadeVendida || 0),
+      quantidadeDisponivel: Math.max(
+        0,
+        item.quantidadeDisponivel !== undefined
+          ? item.quantidadeDisponivel
+          : (item.quantidadeProduzida || 0) - (item.quantidadeVendida || 0),
+      ),
+      custoEstimadoUnitario: Math.max(0, item.custoEstimadoUnitario || 0),
+      observacao: item.observacao ? sanitizarTexto(item.observacao) : '',
+      atualizadoEm: new Date().toISOString(),
+    }
+
+    setData((prev) => {
+      const est = prev.estoque || ESTOQUE_PADRAO
+      return {
+        ...prev,
+        estoque: {
+          ...est,
+          produtosProntos: [...est.produtosProntos, novo],
+        },
+      }
+    })
+
+    logAudit(
+      'Estoque',
+      'Produto pronto adicionado',
+      `Novo produto pronto cadastrado: "${novo.produtoNome}".`,
+    )
+  }
+
   // --- CONFIGURAÇÕES E RESTAURAÇÃO ---
   const updateSettings = (newSettings: Partial<AppSettings>) => {
     setSettings((prev) => ({ ...prev, ...newSettings }))
@@ -546,6 +953,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addFornecedor,
         updateFornecedor,
         deleteFornecedor,
+        addInsumoEstoque,
+        updateInsumoEstoque,
+        deleteInsumoEstoque,
+        addMovimentacaoEstoque,
+        editMovimentacaoEstoque,
+        deleteMovimentacaoEstoque,
+        updateProdutoPronto,
+        addProdutoPronto,
         updateSettings,
         restoreDataFromJson,
         resetAllData,

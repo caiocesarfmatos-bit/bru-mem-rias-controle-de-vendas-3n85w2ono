@@ -7,6 +7,8 @@ import {
   exportarCsvClientes,
   exportarCsvPedidos,
   exportarCsvFornecedores,
+  exportarCsvEstoque,
+  exportarCsvMovimentacoesEstoque,
 } from '@/lib/exportUtils'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -21,6 +23,7 @@ import {
   Coins,
   Share2,
   FileSpreadsheet,
+  Boxes,
   X,
   AlertTriangle,
 } from 'lucide-react'
@@ -35,7 +38,18 @@ export const Header: React.FC = () => {
   const [resetConfirmWord, setResetConfirmWord] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const tabs: { id: TabId; label: string; icon: React.ReactNode; badge?: number }[] = [
+  const estoqueInsumos = data.estoque?.insumos || []
+  const itensEstoqueBaixoCount = estoqueInsumos.filter(
+    (item) => item.quantidadeAtual <= item.estoqueMinimo,
+  ).length
+
+  const tabs: {
+    id: TabId
+    label: string
+    icon: React.ReactNode
+    badge?: number
+    badgeAlert?: boolean
+  }[] = [
     { id: 'custos', label: 'Custos', icon: <Coins className="w-4 h-4" /> },
     { id: 'calculadora', label: 'Calculadora', icon: <Calculator className="w-4 h-4" /> },
     {
@@ -49,6 +63,13 @@ export const Header: React.FC = () => {
       label: 'Fornecedores',
       icon: <Truck className="w-4 h-4" />,
       badge: data.fornecedores.length,
+    },
+    {
+      id: 'estoque',
+      label: 'Estoque',
+      icon: <Boxes className="w-4 h-4" />,
+      badge: itensEstoqueBaixoCount > 0 ? itensEstoqueBaixoCount : estoqueInsumos.length,
+      badgeAlert: itensEstoqueBaixoCount > 0,
     },
     { id: 'painel', label: 'Painel', icon: <LayoutDashboard className="w-4 h-4" /> },
   ]
@@ -196,8 +217,13 @@ export const Header: React.FC = () => {
               {typeof tab.badge === 'number' && (
                 <span
                   className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                    isActive ? 'bg-[#FF1493] text-white' : 'bg-[#4E342E]/10 text-[#4E342E]'
+                    tab.badgeAlert
+                      ? 'bg-[#FF1493] text-white animate-pulse'
+                      : isActive
+                        ? 'bg-[#FF1493] text-white'
+                        : 'bg-[#4E342E]/10 text-[#4E342E]'
                   }`}
+                  title={tab.badgeAlert ? `${tab.badge} itens com estoque baixo!` : undefined}
                 >
                   {tab.badge}
                 </span>
@@ -267,7 +293,7 @@ export const Header: React.FC = () => {
                   <FileSpreadsheet className="w-4 h-4 text-[#FF1493]" />
                   Exportar Planilhas (CSV Excel pt-BR)
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   <button
                     onClick={() => {
                       exportarCsvClientes(data)
@@ -297,6 +323,30 @@ export const Header: React.FC = () => {
                     className="p-2.5 text-xs font-medium text-[#4E342E] bg-white border border-[#F0E4E0] hover:border-[#FF1493] hover:text-[#FF1493] rounded-lg text-center transition-colors shadow-2xs"
                   >
                     Fornecedores ({data.fornecedores.length})
+                  </button>
+                  <button
+                    onClick={() => {
+                      exportarCsvEstoque(data)
+                      logAudit('Sistema', 'Exportação CSV', 'Itens de estoque exportados para CSV.')
+                      toast({ title: 'Planilha de Estoque exportada!' })
+                    }}
+                    className="p-2.5 text-xs font-medium text-[#4E342E] bg-white border border-[#F0E4E0] hover:border-[#FF1493] hover:text-[#FF1493] rounded-lg text-center transition-colors shadow-2xs"
+                  >
+                    Estoque ({data.estoque?.insumos.length || 0})
+                  </button>
+                  <button
+                    onClick={() => {
+                      exportarCsvMovimentacoesEstoque(data)
+                      logAudit(
+                        'Sistema',
+                        'Exportação CSV',
+                        'Movimentações de estoque exportadas para CSV.',
+                      )
+                      toast({ title: 'Planilha de Movimentações exportada!' })
+                    }}
+                    className="p-2.5 text-xs font-medium text-[#4E342E] bg-white border border-[#F0E4E0] hover:border-[#FF1493] hover:text-[#FF1493] rounded-lg text-center transition-colors shadow-2xs col-span-2 sm:col-span-1"
+                  >
+                    Movimentações ({data.estoque?.movimentacoes.length || 0})
                   </button>
                 </div>
               </div>

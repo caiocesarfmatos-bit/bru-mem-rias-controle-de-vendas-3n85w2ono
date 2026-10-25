@@ -643,6 +643,7 @@ export const ModuloPainel: React.FC = () => {
               <option value="Calculadora">Calculadora</option>
               <option value="Clientes">Clientes</option>
               <option value="Fornecedores">Fornecedores</option>
+              <option value="Estoque">Estoque</option>
               <option value="Sistema">Sistema</option>
             </select>
           </div>
@@ -676,7 +677,9 @@ export const ModuloPainel: React.FC = () => {
                               ? 'bg-rose-100 text-[#FF1493]'
                               : log.modulo === 'Fornecedores'
                                 ? 'bg-purple-100 text-purple-800'
-                                : 'bg-gray-100 text-gray-800'
+                                : log.modulo === 'Estoque'
+                                  ? 'bg-[#FFF0F8] text-[#FF1493] border border-[#FF1493]/30'
+                                  : 'bg-gray-100 text-gray-800'
                       }`}
                     >
                       {log.modulo}

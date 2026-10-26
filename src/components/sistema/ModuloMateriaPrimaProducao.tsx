@@ -113,16 +113,11 @@ export const ModuloMateriaPrimaProducao: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Cabeçalho */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-serif font-bold text-[#4E342E] flex items-center gap-2">
-            <Boxes className="w-6 h-6 text-[#FF1493]" />
-            Matéria-Prima & Produção
-          </h2>
-          <p className="text-sm text-[#4E342E]/70">
-            Controle de insumos, cálculo de rendimento operacional e estimativa de consumo por lote
-          </p>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h2 className="text-xl font-serif font-bold text-[#4E342E] flex items-center gap-2">
+          <Boxes className="w-5 h-5 text-[#FF1493]" />
+          Matéria-Prima & Produção
+        </h2>
 
         <Dialog open={modalInsumoAberto} onOpenChange={setModalInsumoAberto}>
           <DialogTrigger asChild>

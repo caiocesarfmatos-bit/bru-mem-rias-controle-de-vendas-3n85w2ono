@@ -155,16 +155,11 @@ export const ModuloCatalogoEstoque: React.FC = () => {
       ) : (
         <>
           {/* Topo Produtos */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-serif font-bold text-[#4E342E] flex items-center gap-2">
-                <Package className="w-6 h-6 text-[#FF1493]" />
-                Catálogo & Estoque de Produtos
-              </h2>
-              <p className="text-sm text-[#4E342E]/70">
-                Produtos, tabela de preços vigentes e saldo calculado por movimentações imutáveis
-              </p>
-            </div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h2 className="text-xl font-serif font-bold text-[#4E342E] flex items-center gap-2">
+              <Package className="w-5 h-5 text-[#FF1493]" />
+              Catálogo & Estoque
+            </h2>
 
             <Dialog open={modalProdutoAberto} onOpenChange={setModalProdutoAberto}>
               <DialogTrigger asChild>

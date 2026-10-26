@@ -30,8 +30,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { BrandEmblem } from '@/design/BrandEmblem'
-import { BRAND_TOKENS } from '@/design/tokens'
 import { useAuth } from '@/context/AuthContext'
 import { PeriodoRelatorioTipo, paraYmd } from '@/lib/relatoriosUtils'
 import { formatarCentavosParaReal, formatarNumero } from '@/lib/formatters'
@@ -164,63 +162,9 @@ export const PainelMetricas: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Cabeçalho Oficial com Emblema da Marca */}
-      <div className="bg-[#FFF8F4] border border-[#EEDFD7] rounded-xl p-5 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <BrandEmblem variant="main" size={56} withPadding={false} />
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-wider font-semibold text-[#D49B42]">
-                  {BRAND_TOKENS.name} • {BRAND_TOKENS.tagline}
-                </span>
-                <Badge
-                  variant="outline"
-                  className="border-[#E63980] text-[#E63980] bg-[#FCE7F0]/40 text-xs font-medium"
-                >
-                  {isVendedor ? 'Visão do Vendedor' : 'Visão Gerencial'}
-                </Badge>
-              </div>
-              <h1 className="text-2xl font-serif font-bold text-[#3D150B] flex items-center gap-2 mt-0.5">
-                <BarChart3 className="w-6 h-6 text-[#E63980]" />
-                Dashboard de Métricas
-              </h1>
-              <p className="text-sm text-[#3D150B]/75 mt-0.5">
-                {isVendedor
-                  ? 'Acompanhamento do seu desempenho de vendas e orçamentos em tempo real.'
-                  : 'Visão consolidada de vendas, faturamento, recebimentos, estoque e conversão comercial.'}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={carregarMetricas}
-              disabled={loading}
-              className="border-[#EEDFD7] text-[#3D150B] hover:bg-white"
-            >
-              <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
-              Atualizar
-            </Button>
-
-            {podeExportar && (
-              <Button
-                size="sm"
-                onClick={handleExportarCsv}
-                disabled={loading || !metricas || exportandoCsv}
-                className="bg-[#3D150B] hover:bg-[#240B05] text-white"
-              >
-                <Download className="w-4 h-4 mr-1.5" />
-                {exportandoCsv ? 'Gerando CSV...' : 'Exportar CSV do Período'}
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Barra de Filtro de Período de Competência */}
-        <div className="mt-5 pt-4 border-t border-[#EEDFD7]/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* Controles Funcionais de Período e Exportação (Direto sem hero decorativo) */}
+      <div className="bg-white border border-[#EEDFD7] rounded-xl p-3.5 sm:p-4 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-xs font-semibold text-[#3D150B]/80 flex items-center gap-1 mr-1">
               <Calendar className="w-3.5 h-3.5 text-[#E63980]" />
@@ -234,7 +178,7 @@ export const PainelMetricas: React.FC = () => {
                 className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
                   tipoPeriodo === op.valor
                     ? 'bg-[#E63980] text-white shadow-xs'
-                    : 'bg-white text-[#3D150B] border border-[#EEDFD7] hover:bg-[#FFF8F4]'
+                    : 'bg-[#FFF8F4] text-[#3D150B] border border-[#EEDFD7] hover:bg-white'
                 }`}
               >
                 {op.rotulo}
@@ -242,35 +186,63 @@ export const PainelMetricas: React.FC = () => {
             ))}
           </div>
 
-          {tipoPeriodo === 'personalizado' && (
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-md border border-[#EEDFD7]">
-              <div className="flex items-center gap-1">
-                <Label className="text-xs text-[#3D150B]/70">De:</Label>
-                <Input
-                  type="date"
-                  value={dataInicioCustom}
-                  onChange={(e) => setDataInicioCustom(e.target.value)}
-                  className="h-7 text-xs w-32 border-[#EEDFD7]"
-                />
+          <div className="flex items-center gap-2 flex-wrap">
+            {tipoPeriodo === 'personalizado' && (
+              <div className="flex items-center gap-2 bg-[#FFF8F4] px-2.5 py-1 rounded-md border border-[#EEDFD7]">
+                <div className="flex items-center gap-1">
+                  <Label className="text-xs text-[#3D150B]/70">De:</Label>
+                  <Input
+                    type="date"
+                    value={dataInicioCustom}
+                    onChange={(e) => setDataInicioCustom(e.target.value)}
+                    className="h-7 text-xs w-32 border-[#EEDFD7] bg-white"
+                  />
+                </div>
+                <div className="flex items-center gap-1">
+                  <Label className="text-xs text-[#3D150B]/70">Até:</Label>
+                  <Input
+                    type="date"
+                    value={dataFimCustom}
+                    onChange={(e) => setDataFimCustom(e.target.value)}
+                    className="h-7 text-xs w-32 border-[#EEDFD7] bg-white"
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <Label className="text-xs text-[#3D150B]/70">Até:</Label>
-                <Input
-                  type="date"
-                  value={dataFimCustom}
-                  onChange={(e) => setDataFimCustom(e.target.value)}
-                  className="h-7 text-xs w-32 border-[#EEDFD7]"
-                />
-              </div>
-            </div>
-          )}
+            )}
 
-          {metricas && (
-            <span className="text-xs text-[#3D150B]/70 font-mono">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={carregarMetricas}
+              disabled={loading}
+              className="border-[#EEDFD7] text-[#3D150B] hover:bg-[#FFF8F4] h-8 text-xs"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+
+            {podeExportar && (
+              <Button
+                size="sm"
+                onClick={handleExportarCsv}
+                disabled={loading || !metricas || exportandoCsv}
+                className="bg-[#3D150B] hover:bg-[#240B05] text-white h-8 text-xs"
+              >
+                <Download className="w-3.5 h-3.5 mr-1.5" />
+                {exportandoCsv ? 'Gerando CSV...' : 'Exportar CSV'}
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {metricas && (
+          <div className="mt-2.5 pt-2 border-t border-[#EEDFD7]/60 flex items-center justify-between text-xs text-[#3D150B]/70 font-mono">
+            <span>
               Competência: {metricas.periodo.inicio} até {metricas.periodo.fim}
             </span>
-          )}
-        </div>
+            <span>{metricas.periodo.label}</span>
+          </div>
+        )}
       </div>
 
       {/* Alerta de erro */}

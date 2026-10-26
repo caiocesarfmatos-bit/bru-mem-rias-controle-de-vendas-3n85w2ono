@@ -273,17 +273,11 @@ export const ModuloVendas: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Topo */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-serif font-bold text-[#4E342E] flex items-center gap-2">
-            <ShoppingCart className="w-6 h-6 text-[#FF1493]" />
-            Vendas & Pedidos
-          </h2>
-          <p className="text-sm text-[#4E342E]/70">
-            Pedidos confirmados com fechamento de pagamento estrito (R11) e baixa atômica de estoque
-            (R7/R9)
-          </p>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h2 className="text-xl font-serif font-bold text-[#4E342E] flex items-center gap-2">
+          <ShoppingCart className="w-5 h-5 text-[#FF1493]" />
+          Vendas & Pedidos
+        </h2>
 
         <Dialog open={modalAberto} onOpenChange={setModalAberto}>
           <DialogTrigger asChild>

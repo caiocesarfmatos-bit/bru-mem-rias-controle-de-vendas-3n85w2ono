@@ -308,35 +308,26 @@ export function SecaoFaixasFrete() {
         </CardContent>
       </Card>
 
-      {/* Cabeçalho informativo */}
+      {/* Controles da Tabela Própria de Frete */}
       <Card className="border-border bg-card">
-        <CardHeader className="pb-3">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Truck className="h-5 w-5 text-primary" />
-                <CardTitle className="text-xl">Tabela Própria de Frete</CardTitle>
-                <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
-                  Origem: Recreio dos Bandeirantes, Rio de Janeiro
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Configuração de faixas tarifárias por região/UF e peso dos ímãs personalizados (5x5
-                cm). O cálculo automático aplica as regras ativas durante a criação de pedidos.
-              </p>
+        <CardHeader className="p-4 pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Truck className="h-5 w-5 text-primary" />
+              <CardTitle className="text-xl">Tabela Própria de Frete</CardTitle>
             </div>
             {podeEditar && (
-              <Button onClick={abrirNovo} className="gap-2">
+              <Button onClick={abrirNovo} size="sm" className="gap-2">
                 <Plus className="h-4 w-4" />
-                Nova Faixa de Frete
+                Nova Faixa
               </Button>
             )}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 pt-0">
           {/* Barra de filtros */}
           <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-border/50">
-            <span className="text-xs font-medium text-muted-foreground">Filtrar por Região:</span>
+            <span className="text-xs font-medium text-muted-foreground">Região:</span>
             <div className="flex flex-wrap gap-1.5">
               <Button
                 variant={filtroRegiao === 'TODAS' ? 'default' : 'outline'}

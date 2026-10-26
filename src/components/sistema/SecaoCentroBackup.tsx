@@ -142,17 +142,11 @@ export const SecaoCentroBackup: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Topo do Módulo de Backup */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-serif font-bold text-[#4E342E] flex items-center gap-2">
-            <Archive className="w-6 h-6 text-[#FF1493]" />
-            Centro de Backup e Preservação de Dados
-          </h2>
-          <p className="text-sm text-[#4E342E]/70">
-            Rotina robotizada no servidor (10h, 17h, 23h Brasília) e exportação integral de 21
-            coleções
-          </p>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h2 className="text-xl font-serif font-bold text-[#4E342E] flex items-center gap-2">
+          <Archive className="w-5 h-5 text-[#FF1493]" />
+          Centro de Backup & Preservação
+        </h2>
 
         <div className="flex items-center gap-2">
           <Button

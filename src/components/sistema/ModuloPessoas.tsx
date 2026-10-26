@@ -140,16 +140,11 @@ export const ModuloPessoas: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Topo com Título e Ações */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-serif font-bold text-[#4E342E] flex items-center gap-2">
-            <Users className="w-6 h-6 text-[#FF1493]" />
-            Clientes e Fornecedores
-          </h2>
-          <p className="text-sm text-[#4E342E]/70">
-            Base unificada de pessoas físicas e jurídicas com papéis e contatos oficiais
-          </p>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h2 className="text-xl font-serif font-bold text-[#4E342E] flex items-center gap-2">
+          <Users className="w-5 h-5 text-[#FF1493]" />
+          Clientes & Fornecedores
+        </h2>
 
         <Dialog open={modalAberto} onOpenChange={setModalAberto}>
           <DialogTrigger asChild>

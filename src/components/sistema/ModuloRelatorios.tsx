@@ -77,16 +77,11 @@ export const ModuloRelatorios: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Topo */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-serif font-bold text-[#4E342E] flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-[#FF1493]" />
-            Relatórios Gerenciais
-          </h2>
-          <p className="text-sm text-[#4E342E]/70">
-            Faturamento auditado, distribuição de receitas por meio de pagamento e conciliação
-          </p>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h2 className="text-xl font-serif font-bold text-[#4E342E] flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-[#FF1493]" />
+          Relatórios Gerenciais
+        </h2>
 
         <Button onClick={exportarCsvVendas} className="bg-[#FF1493] hover:bg-[#D8117E] text-white">
           <Download className="w-4 h-4 mr-2" />

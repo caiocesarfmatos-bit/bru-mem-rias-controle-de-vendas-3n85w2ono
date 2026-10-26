@@ -87,7 +87,6 @@ import {
   formatarTelefoneBR,
   normalizarTelefoneE164,
 } from '@/lib/formatters'
-import { BRAND_TOKENS } from '@/design/tokens'
 
 type SecaoMarketing = 'resumo' | 'calendario' | 'funil' | 'personas'
 
@@ -589,33 +588,64 @@ export const ModuloMarketing: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Topo do Módulo com Identidade Bru Memórias */}
-      <div className="bg-[#FFF8F4] border border-[#EEDFD7] rounded-xl p-4 sm:p-5 shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#E63980] to-[#D1256E] flex items-center justify-center text-white shadow-xs flex-shrink-0">
-              <Megaphone className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-wider font-semibold text-[#D49B42]">
-                  {BRAND_TOKENS.name}
-                </span>
-                <Badge
-                  variant="outline"
-                  className="border-[#E63980] text-[#E63980] bg-[#FCE7F0]/40 text-xs"
-                >
-                  Módulo de Marketing & Comercial
+      {/* Controles e Navegação Funcional do Módulo */}
+      <div className="bg-white border border-[#EEDFD7] rounded-xl p-3 sm:p-4 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Abas Internas de Navegação (Mobile-First Touch Target >=44px) */}
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
+            <button
+              onClick={() => setSecaoAtiva('resumo')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap min-h-[44px] transition-colors ${
+                secaoAtiva === 'resumo'
+                  ? 'bg-[#3D150B] text-white'
+                  : 'bg-[#FFF8F4] text-[#3D150B] border border-[#EEDFD7] hover:bg-white'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4" />
+              Painel Resumo
+            </button>
+
+            <button
+              onClick={() => setSecaoAtiva('calendario')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap min-h-[44px] transition-colors ${
+                secaoAtiva === 'calendario'
+                  ? 'bg-[#3D150B] text-white'
+                  : 'bg-[#FFF8F4] text-[#3D150B] border border-[#EEDFD7] hover:bg-white'
+              }`}
+            >
+              <Calendar className="w-4 h-4 text-[#E63980]" />
+              Calendário Editorial
+              {pubsAtrasadas.length > 0 && <span className="w-2 h-2 rounded-full bg-rose-500" />}
+            </button>
+
+            <button
+              onClick={() => setSecaoAtiva('funil')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap min-h-[44px] transition-colors ${
+                secaoAtiva === 'funil'
+                  ? 'bg-[#3D150B] text-white'
+                  : 'bg-[#FFF8F4] text-[#3D150B] border border-[#EEDFD7] hover:bg-white'
+              }`}
+            >
+              <Users className="w-4 h-4 text-[#D49B42]" />
+              Funil de Leads
+              {leadsSemFollowUp.length > 0 && (
+                <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-[10px] px-1 py-0">
+                  {leadsSemFollowUp.length}
                 </Badge>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-serif font-bold text-[#3D150B] mt-0.5">
-                Marketing, Calendário & Funil de Leads
-              </h1>
-              <p className="text-xs sm:text-sm text-[#3D150B]/75 mt-0.5">
-                Gestão integrada de postagens, contatos comerciais, pipeline de conversão e personas
-                do ateliê.
-              </p>
-            </div>
+              )}
+            </button>
+
+            <button
+              onClick={() => setSecaoAtiva('personas')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap min-h-[44px] transition-colors ${
+                secaoAtiva === 'personas'
+                  ? 'bg-[#3D150B] text-white'
+                  : 'bg-[#FFF8F4] text-[#3D150B] border border-[#EEDFD7] hover:bg-white'
+              }`}
+            >
+              <Target className="w-4 h-4 text-purple-600" />
+              Personas
+            </button>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -624,9 +654,9 @@ export const ModuloMarketing: React.FC = () => {
               size="sm"
               onClick={carregarDados}
               disabled={loading}
-              className="border-[#EEDFD7] text-[#3D150B] hover:bg-white min-h-[44px] sm:min-h-[36px]"
+              className="border-[#EEDFD7] text-[#3D150B] hover:bg-[#FFF8F4] min-h-[44px] sm:min-h-[36px] text-xs"
             >
-              <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
 
@@ -635,9 +665,9 @@ export const ModuloMarketing: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => exportarCsvLeads(leadsValidos)}
-                className="border-[#EEDFD7] text-[#3D150B] hover:bg-white min-h-[44px] sm:min-h-[36px]"
+                className="border-[#EEDFD7] text-[#3D150B] hover:bg-[#FFF8F4] min-h-[44px] sm:min-h-[36px] text-xs"
               >
-                <Download className="w-4 h-4 mr-1.5 text-[#E63980]" />
+                <Download className="w-3.5 h-3.5 mr-1.5 text-[#E63980]" />
                 Exportar Leads
               </Button>
             )}
@@ -646,70 +676,13 @@ export const ModuloMarketing: React.FC = () => {
               <Button
                 size="sm"
                 onClick={() => setModalNovoLead(true)}
-                className="bg-[#E63980] hover:bg-[#D1256E] text-white min-h-[44px] sm:min-h-[36px]"
+                className="bg-[#E63980] hover:bg-[#D1256E] text-white min-h-[44px] sm:min-h-[36px] text-xs"
               >
-                <Plus className="w-4 h-4 mr-1.5" />
+                <Plus className="w-3.5 h-3.5 mr-1.5" />
                 Novo Lead
               </Button>
             )}
           </div>
-        </div>
-
-        {/* Abas Internas de Navegação (Mobile-First Touch Target >=44px) */}
-        <div className="mt-4 pt-3 border-t border-[#EEDFD7] flex items-center gap-2 overflow-x-auto scrollbar-none">
-          <button
-            onClick={() => setSecaoAtiva('resumo')}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap min-h-[44px] transition-colors ${
-              secaoAtiva === 'resumo'
-                ? 'bg-[#3D150B] text-white'
-                : 'bg-white text-[#3D150B] border border-[#EEDFD7] hover:bg-[#FFF8F4]'
-            }`}
-          >
-            <TrendingUp className="w-4 h-4" />
-            Painel Resumo
-          </button>
-
-          <button
-            onClick={() => setSecaoAtiva('calendario')}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap min-h-[44px] transition-colors ${
-              secaoAtiva === 'calendario'
-                ? 'bg-[#3D150B] text-white'
-                : 'bg-white text-[#3D150B] border border-[#EEDFD7] hover:bg-[#FFF8F4]'
-            }`}
-          >
-            <Calendar className="w-4 h-4 text-[#E63980]" />
-            Calendário Editorial
-            {pubsAtrasadas.length > 0 && <span className="w-2 h-2 rounded-full bg-rose-500" />}
-          </button>
-
-          <button
-            onClick={() => setSecaoAtiva('funil')}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap min-h-[44px] transition-colors ${
-              secaoAtiva === 'funil'
-                ? 'bg-[#3D150B] text-white'
-                : 'bg-white text-[#3D150B] border border-[#EEDFD7] hover:bg-[#FFF8F4]'
-            }`}
-          >
-            <Users className="w-4 h-4 text-[#D49B42]" />
-            Funil de Leads
-            {leadsSemFollowUp.length > 0 && (
-              <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-[10px] px-1 py-0">
-                {leadsSemFollowUp.length}
-              </Badge>
-            )}
-          </button>
-
-          <button
-            onClick={() => setSecaoAtiva('personas')}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap min-h-[44px] transition-colors ${
-              secaoAtiva === 'personas'
-                ? 'bg-[#3D150B] text-white'
-                : 'bg-white text-[#3D150B] border border-[#EEDFD7] hover:bg-[#FFF8F4]'
-            }`}
-          >
-            <Target className="w-4 h-4 text-purple-600" />
-            Personas do Ateliê
-          </button>
         </div>
       </div>
 

@@ -5,9 +5,14 @@ import { UsuarioSistema, PerfilUsuario } from '@/types/sistema'
 interface AuthContextType {
   usuario: UsuarioSistema | null
   isAutenticado: boolean
+  contraSenhaLiberada: boolean
+  aguardandoContraSenha: boolean
   isLoading: boolean
   login: (email: string, pass: string) => Promise<{ sucesso: boolean; erro?: string }>
-  logout: () => void
+  validarContraSenha: (
+    codigo: string,
+  ) => Promise<{ sucesso: boolean; erro?: string; bloqueadoSegundos?: number }>
+  logout: () => Promise<void>
   temPermissao: (operacao: string) => boolean
 }
 
@@ -61,6 +66,9 @@ const PERMISSOES_POR_PERFIL: Record<PerfilUsuario, string[]> = {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [usuario, setUsuario] = useState<UsuarioSistema | null>(null)
+  const [contraSenhaLiberada, setContraSenhaLiberada] = useState<boolean>(() => {
+    return sessionStorage.getItem('bm_contra_senha_validada') === 'true'
+  })
   const [isLoading, setIsLoading] = useState(true)
 
   const extrairUsuarioSeguro = (m: any): UsuarioSistema | null => {
@@ -81,26 +89,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       name: nameLimpo || emailLimpo,
       perfil: perfilLimpo,
       ativo: m.ativo !== false,
+      contra_senha_liberada: Boolean(m.contra_senha_liberada),
       created: typeof m.created === 'string' ? m.created : new Date().toISOString(),
       updated: typeof m.updated === 'string' ? m.updated : new Date().toISOString(),
     }
   }
 
-  // Iniciar checando sessão salva no PocketBase
+  // Sincronizar estado da sessão
   useEffect(() => {
     if (pb.authStore.isValid && pb.authStore.model) {
-      setUsuario(extrairUsuarioSeguro(pb.authStore.model))
+      const u = extrairUsuarioSeguro(pb.authStore.model)
+      setUsuario(u)
+      const sessaoAtiva = sessionStorage.getItem('bm_contra_senha_validada') === 'true'
+      setContraSenhaLiberada(sessaoAtiva && Boolean(u?.contra_senha_liberada))
     } else {
       setUsuario(null)
+      setContraSenhaLiberada(false)
+      sessionStorage.removeItem('bm_contra_senha_validada')
     }
     setIsLoading(false)
 
-    // Ouvir alterações do authStore
     const unsubscribe = pb.authStore.onChange(() => {
       if (pb.authStore.isValid && pb.authStore.model) {
-        setUsuario(extrairUsuarioSeguro(pb.authStore.model))
+        const u = extrairUsuarioSeguro(pb.authStore.model)
+        setUsuario(u)
+        const sessaoAtiva = sessionStorage.getItem('bm_contra_senha_validada') === 'true'
+        setContraSenhaLiberada(sessaoAtiva && Boolean(u?.contra_senha_liberada))
       } else {
         setUsuario(null)
+        setContraSenhaLiberada(false)
+        sessionStorage.removeItem('bm_contra_senha_validada')
       }
     })
 
@@ -117,8 +135,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const authData = await pb.collection('users').authWithPassword(email.trim(), pass)
       if (!authData.record.ativo && authData.record.ativo !== undefined) {
         pb.authStore.clear()
+        setUsuario(null)
+        setContraSenhaLiberada(false)
+        sessionStorage.removeItem('bm_contra_senha_validada')
         return { sucesso: false, erro: 'Conta inativa. Procure o Administrador.' }
       }
+
+      // Ao realizar login com sucesso, a contra senha NUNCA vem liberada automaticamente
+      // Garante estado limpo e aguardando contra senha
+      sessionStorage.removeItem('bm_contra_senha_validada')
+      setContraSenhaLiberada(false)
+      setUsuario(extrairUsuarioSeguro(authData.record))
       return { sucesso: true }
     } catch (err: any) {
       console.error('Erro de autenticação:', err)
@@ -129,7 +156,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  const logout = () => {
+  const validarContraSenha = async (
+    codigo: string,
+  ): Promise<{ sucesso: boolean; erro?: string; bloqueadoSegundos?: number }> => {
+    try {
+      const res = await pb.send<{
+        sucesso: boolean
+        mensagem?: string
+        erro?: string
+        bloqueadoSegundos?: number
+        usuario?: any
+      }>('/backend/v1/sistema/auth/validar-contra-senha', {
+        method: 'POST',
+        body: { contraSenha: codigo.trim() },
+      })
+
+      if (res && res.sucesso) {
+        sessionStorage.setItem('bm_contra_senha_validada', 'true')
+        setContraSenhaLiberada(true)
+        if (res.usuario && pb.authStore.model) {
+          setUsuario({
+            ...extrairUsuarioSeguro(pb.authStore.model)!,
+            contra_senha_liberada: true,
+          })
+        }
+        return { sucesso: true }
+      }
+      return { sucesso: false, erro: res?.erro || 'Código incorreto.' }
+    } catch (err: any) {
+      const dados = err.data || {}
+      return {
+        sucesso: false,
+        erro: dados.erro || err.message || 'Código incorreto.',
+        bloqueadoSegundos: dados.bloqueadoSegundos,
+      }
+    }
+  }
+
+  const logout = async () => {
+    try {
+      if (pb.authStore.isValid) {
+        await pb.send('/backend/v1/sistema/auth/resetar-contra-senha-sessao', {
+          method: 'POST',
+        })
+      }
+    } catch {
+      /* intentionally ignored */
+    }
+    sessionStorage.removeItem('bm_contra_senha_validada')
+    setContraSenhaLiberada(false)
     pb.authStore.clear()
     setUsuario(null)
   }
@@ -144,9 +219,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         usuario,
-        isAutenticado: !!usuario,
+        isAutenticado: !!usuario && contraSenhaLiberada,
+        contraSenhaLiberada,
+        aguardandoContraSenha: !!usuario && !contraSenhaLiberada,
         isLoading,
         login,
+        validarContraSenha,
         logout,
         temPermissao,
       }}

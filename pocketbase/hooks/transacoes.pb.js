@@ -326,6 +326,209 @@ cronAdd('backup_auto_23h_brasilia', '0 2 * * *', () => {
 })
 
 // =========================================================================
+// 2. SEGURANÇA: CONTRA SENHA DE LOGIN (501698) E CÓDIGO RESTRITO ADM
+// =========================================================================
+
+// POST /backend/v1/sistema/auth/validar-contra-senha
+// Valida a contra senha (501698) em tempo constante no servidor com rate limit progressivo e auditoria.
+routerAdd('POST', '/backend/v1/sistema/auth/validar-contra-senha', (c) => {
+  const correlationId = 'CS-VAL-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6)
+  const auth = c.auth
+  if (!auth) {
+    return c.json(401, {
+      correlationId: correlationId,
+      erro: 'Autenticação de primeiro nível (e-mail e senha) exigida.',
+    })
+  }
+
+  const userId = auth.id
+  let userRec
+  try {
+    userRec = $app.findRecordById('_pb_users_auth_', userId)
+  } catch (_) {
+    return c.json(401, { correlationId: correlationId, erro: 'Usuário não localizado no sistema.' })
+  }
+
+  // 1. Verificar se usuário já está com conta inativa
+  if (!userRec.getBool('ativo')) {
+    return c.json(403, {
+      correlationId: correlationId,
+      erro: 'Conta inativa. Procure o Administrador.',
+    })
+  }
+
+  // 2. Verificar bloqueio temporário ativo
+  const bloqueadoAteStr = userRec.getString('bloqueado_ate')
+  if (bloqueadoAteStr) {
+    const agora = new Date().getTime()
+    const bloqueadoAte = new Date(bloqueadoAteStr).getTime()
+    if (agora < bloqueadoAte) {
+      const segundosRestantes = Math.ceil((bloqueadoAte - agora) / 1000)
+      return c.json(429, {
+        correlationId: correlationId,
+        erro: `Acesso temporariamente bloqueado por excesso de tentativas. Aguarde ${segundosRestantes} segundos.`,
+        segundosRestantes: segundosRestantes,
+      })
+    }
+  }
+
+  const body = c.requestInfo().body || {}
+  const contraSenhaInformada = (body.contraSenha || '').toString().trim()
+
+  if (!contraSenhaInformada) {
+    return c.json(400, {
+      correlationId: correlationId,
+      erro: 'Digite a contra senha para continuar.',
+    })
+  }
+
+  // Obter hash esperado do banco de dados (coleção parametros_seguranca)
+  let hashEsperado = '3c9e8394083ea25a99c7374f9b2b26c7d65246faba0e594a466f7ef934c686a3' // SHA-256 de "501698"
+  try {
+    const recSeg = $app.findFirstRecordByData('parametros_seguranca', 'chave', 'CONTRA_SENHA_LOGIN')
+    hashEsperado = recSeg.getString('valor_hash')
+  } catch (_) {
+    try {
+      const recSegAdm = $app.findFirstRecordByData(
+        'parametros_seguranca',
+        'chave',
+        'CODIGO_RESTRITO_ADM',
+      )
+      hashEsperado = recSegAdm.getString('valor_hash')
+    } catch (_) {}
+  }
+
+  const hashInformado = $security.sha256(contraSenhaInformada)
+  let contraSenhaValida = true
+  if (hashEsperado.length !== hashInformado.length) {
+    contraSenhaValida = false
+  } else {
+    let diff = 0
+    for (let k = 0; k < hashEsperado.length; k++) {
+      diff |= hashEsperado.charCodeAt(k) ^ hashInformado.charCodeAt(k)
+    }
+    contraSenhaValida = diff === 0
+  }
+
+  const agoraIso = new Date().toISOString()
+  const ipCliente = c.realIP() || '0.0.0.0'
+
+  if (!contraSenhaValida) {
+    // Incrementar tentativas falhas
+    const falhasAtuais = userRec.getInt('tentativas_falhas') + 1
+    userRec.set('tentativas_falhas', falhasAtuais)
+
+    // Rate limiting progressivo:
+    // 3 falhas -> 30s
+    // 5 falhas -> 60s
+    // 7+ falhas -> 300s (5min)
+    let segundosBloqueio = 0
+    if (falhasAtuais >= 7) {
+      segundosBloqueio = 300
+    } else if (falhasAtuais >= 5) {
+      segundosBloqueio = 60
+    } else if (falhasAtuais >= 3) {
+      segundosBloqueio = 30
+    }
+
+    if (segundosBloqueio > 0) {
+      const ateData = new Date(Date.now() + segundosBloqueio * 1000).toISOString()
+      userRec.set('bloqueado_ate', ateData)
+    }
+    userRec.set('contra_senha_liberada', false)
+    $app.save(userRec)
+
+    // Trilha de auditoria da falha
+    try {
+      const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
+      const recAudit = new Record(auditCol)
+      recAudit.set('entidade', 'SESSAO_AUTENTICACAO')
+      recAudit.set('identificador_registro', userId)
+      recAudit.set('campo', 'VALIDACAO_CONTRA_SENHA')
+      recAudit.set(
+        'valor_novo',
+        JSON.stringify({
+          evento: 'CONTRA_SENHA_INCORRETA',
+          email: userRec.getString('email'),
+          tentativas_falhas: falhasAtuais,
+          segundosBloqueio: segundosBloqueio,
+        }),
+      )
+      recAudit.set('usuario', userId)
+      recAudit.set('data_hora', agoraIso)
+      recAudit.set('origem', 'auth_contra_senha_hook')
+      recAudit.set('endereco_ip', ipCliente)
+      $app.save(recAudit)
+    } catch (_) {}
+
+    return c.json(403, {
+      correlationId: correlationId,
+      erro:
+        segundosBloqueio > 0
+          ? `Contra senha incorreta. Acesso bloqueado por ${segundosBloqueio} segundos.`
+          : 'Contra senha incorreta. Verifique o código e tente novamente.',
+      tentativasRestantes: Math.max(0, 3 - (falhasAtuais % 3)),
+      bloqueadoSegundos: segundosBloqueio,
+    })
+  }
+
+  // Contra senha CORRETA!
+  userRec.set('tentativas_falhas', 0)
+  userRec.set('bloqueado_ate', '')
+  userRec.set('contra_senha_liberada', true)
+  $app.save(userRec)
+
+  // Auditoria do sucesso
+  try {
+    const auditCol = $app.findCollectionByNameOrId('logs_auditoria')
+    const recAudit = new Record(auditCol)
+    recAudit.set('entidade', 'SESSAO_AUTENTICACAO')
+    recAudit.set('identificador_registro', userId)
+    recAudit.set('campo', 'VALIDACAO_CONTRA_SENHA')
+    recAudit.set(
+      'valor_novo',
+      JSON.stringify({
+        evento: 'CONTRA_SENHA_ACEITA',
+        email: userRec.getString('email'),
+        perfil: userRec.getString('perfil'),
+      }),
+    )
+    recAudit.set('usuario', userId)
+    recAudit.set('data_hora', agoraIso)
+    recAudit.set('origem', 'auth_contra_senha_hook')
+    recAudit.set('endereco_ip', ipCliente)
+    $app.save(recAudit)
+  } catch (_) {}
+
+  return c.json(200, {
+    correlationId: correlationId,
+    sucesso: true,
+    mensagem: 'Contra senha confirmada com sucesso. Acesso liberado.',
+    usuario: {
+      id: userRec.id,
+      email: userRec.getString('email'),
+      name: userRec.getString('name'),
+      perfil: userRec.getString('perfil'),
+      contra_senha_liberada: true,
+    },
+  })
+})
+
+// POST /backend/v1/sistema/auth/resetar-contra-senha-sessao
+// Bloqueia novamente a contra senha ao sair ou expirar
+routerAdd('POST', '/backend/v1/sistema/auth/resetar-contra-senha-sessao', (c) => {
+  const auth = c.auth
+  if (auth) {
+    try {
+      const userRec = $app.findRecordById('_pb_users_auth_', auth.id)
+      userRec.set('contra_senha_liberada', false)
+      $app.save(userRec)
+    } catch (_) {}
+  }
+  return c.json(200, { sucesso: true })
+})
+
+// =========================================================================
 // 2. SEGURANÇA: CÓDIGO RESTRITO DE ACESSO DO ADM (Hash SHA-256 no Servidor)
 // =========================================================================
 

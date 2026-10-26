@@ -1,9 +1,10 @@
 import { useAuth } from '@/context/AuthContext'
 import { LoginView } from '@/components/sistema/LoginView'
+import { TelaContraSenha } from '@/components/sistema/TelaContraSenha'
 import { CentralAdministrativa } from '@/components/sistema/CentralAdministrativa'
 
 export default function Index() {
-  const { isAutenticado, isLoading } = useAuth()
+  const { isAutenticado, aguardandoContraSenha, isLoading } = useAuth()
 
   if (isLoading) {
     return (
@@ -11,6 +12,10 @@ export default function Index() {
         <div className="animate-pulse font-serif text-lg">Carregando Bru Memórias...</div>
       </div>
     )
+  }
+
+  if (aguardandoContraSenha) {
+    return <TelaContraSenha />
   }
 
   if (!isAutenticado) {

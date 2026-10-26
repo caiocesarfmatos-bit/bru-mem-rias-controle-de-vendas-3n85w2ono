@@ -48,6 +48,7 @@ export interface UsuarioSistema {
   ativo: boolean
   bloqueado_ate?: string
   tentativas_falhas?: number
+  contra_senha_liberada?: boolean
   created: string
   updated: string
 }
